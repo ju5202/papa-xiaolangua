@@ -1,0 +1,13 @@
+{
+  "name": "papa-pumpkin-sanctuary",
+  "version": "0.1.0",
+  "description": "帕帕与小南瓜 · 双视界桌面陪伴",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^37.2.6"
+  }
+}

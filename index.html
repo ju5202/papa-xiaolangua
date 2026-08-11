@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#161d38" />
+    <title>帕帕 · 小南瓜 | 湖畔圣域</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell" id="appShell">
+      <section class="sanctuary" id="sanctuary">
+        <div class="ambient aurora-one"></div><div class="ambient aurora-two"></div>
+        <header class="topbar">
+          <div class="brand"><span class="brand-mark">☾</span><div><b>湖畔圣域</b><small>PA PA &amp; PUMPKIN</small></div></div>
+          <div class="season-pill"><i></i> 夏末 · 第 28 天 <span>◷</span> <strong id="gameTime">18:42</strong></div>
+          <div class="top-actions">
+            <button class="icon-btn" id="soundBtn" title="环境音">⌁</button>
+            <button class="icon-btn" id="pinBtn" title="始终置顶">⌖</button>
+            <button class="window-mode" id="modeBtn"><span>◫</span> 任务栏挂件</button>
+          </div>
+        </header>
+
+        <aside class="sidebar left-sidebar">
+          <div class="section-caption">居住者</div>
+          <div id="petCards"></div>
+          <button class="add-care" id="careBtn"><span>✦</span> 进行一次照料</button>
+          <div class="quote-card"><span class="quote-moon">☽</span><p id="quoteText">“慢慢长大，也是一种抵达。”</p><small>— 湖畔絮语</small></div>
+        </aside>
+
+        <section class="garden-stage" id="gardenStage" aria-label="湖畔庭院">
+          <div class="distant-hills hill-a"></div><div class="distant-hills hill-b"></div>
+          <div class="star-field" id="starField"></div>
+          <div class="moon"><div class="moon-crater c1"></div><div class="moon-crater c2"></div></div>
+          <div class="cloud cloud-a"></div><div class="cloud cloud-b"></div>
+          <div class="lake-shine"></div><div class="lake" id="lake"></div>
+          <div class="shore"></div>
+          <div class="reeds reeds-a">Ⅲ Ⅲ Ⅰ</div><div class="reeds reeds-b">Ⅰ Ⅲ Ⅰ</div>
+          <div class="garden-title"><span>✦</span><div><small>PRIVATE SANCTUARY · 08.11</small><h1>今天也要被温柔照顾</h1></div></div>
+          <div class="build-tip"><kbd>拖 拽</kbd><span>移动庭院摆件</span></div>
+          <div id="decorLayer" class="decor-layer"></div>
+          <div id="turtleLayer" class="turtle-layer"></div>
+          <button class="chest" id="chest" title="打开今日探索宝箱"><span>✦</span><i></i></button>
+          <div class="zen-float" id="zenFloat">+1 Zen</div>
+          <div class="typing-sparkles" id="typingSparkles"></div>
+          <div class="bubble-note" id="bubbleNote"><span class="bubble-icon">◌</span><div><b id="bubbleTitle">喝口水吧</b><small id="bubbleBody">帕帕说：慢一点，也没关系。</small></div><button aria-label="关闭提醒">×</button></div>
+        </section>
+
+        <aside class="sidebar right-sidebar">
+          <div class="stat-head"><div><span class="section-caption">今日禅意</span><b id="zenPoints">2,480</b><small>ZEN POINTS</small></div><div class="coin">✦</div></div>
+          <div class="daily-progress"><div><span>晨间宁静</span><b id="dailyProgress">3 / 5</b></div><div class="progress-track"><i id="dailyBar" style="width:60%"></i></div><small>再完成 2 次互动，收下今日礼物</small></div>
+          <div class="section-caption friends-caption">双人共养</div>
+          <div class="channel-card"><div class="avatars"><span>🐢</span><span>🌙</span></div><div><b id="channelName">湖畔小队</b><small id="channelId">频道 · PAPA-0828</small></div><button id="copyChannel" title="复制频道 ID">⧉</button></div>
+          <div class="sync-state"><i></i><span id="syncText">实时同步已开启</span></div>
+          <button class="messenger-preview" id="openMessenger"><span class="mail-icon">✉</span><span><b>飞鸽传书</b><small id="mailPreview">给远方的 TA 写一封信</small></span><em>›</em></button>
+          <div class="section-caption focus-caption">专注时刻</div>
+          <div class="focus-card"><div class="focus-top"><span>🍅 专注番茄钟</span><button id="focusSettings">···</button></div><b id="focusTime">25:00</b><p>专注后，帕帕和小南瓜会为你献上奖励。</p><button id="focusBtn">开始专注 <span>→</span></button></div>
+        </aside>
+
+        <nav class="bottom-nav" aria-label="功能导航">
+          <button class="nav-item active" data-panel="garden"><span>⌂</span>庭院</button>
+          <button class="nav-item" data-panel="shop"><span>♧</span>商店</button>
+          <button class="nav-item" data-panel="collection"><span>✦</span>图鉴</button>
+          <button class="nav-item" data-panel="build"><span>⌘</span>建造</button>
+          <div class="nav-status"><i></i><span id="statusText">一切安好</span></div>
+        </nav>
+      </section>
+
+      <section class="widget-view" id="widgetView" aria-label="任务栏陪伴挂件">
+        <div class="widget-handle">⋮⋮</div>
+        <div class="widget-water"></div>
+        <div class="widget-title"><b>帕帕 · 小南瓜</b><small id="widgetMessage">正在任务栏巡逻</small></div>
+        <div class="widget-turtles" id="widgetTurtles"></div>
+        <div class="widget-stats"><span>✦ <b id="widgetZen">2480</b></span><span>◌ <b id="widgetMood">满心欢喜</b></span></div>
+        <button id="expandWidget">打开圣域 ↗</button>
+      </section>
+    </main>
+
+    <section class="overlay hidden" id="overlay" aria-live="polite">
+      <div class="modal" id="modal"></div>
+    </section>
+    <div class="toast-stack" id="toastStack"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
