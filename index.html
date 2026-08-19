@@ -1,88 +1,573 @@
 <!doctype html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#161d38" />
-    <title>帕帕 · 小南瓜 | 湖畔圣域</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <main class="app-shell" id="appShell">
-      <section class="sanctuary" id="sanctuary">
-        <div class="ambient aurora-one"></div><div class="ambient aurora-two"></div>
-        <header class="topbar">
-          <div class="brand"><span class="brand-mark">☾</span><div><b>湖畔圣域</b><small>PA PA &amp; PUMPKIN</small></div></div>
-          <div class="season-pill"><i></i> 夏末 · 第 28 天 <span>◷</span> <strong id="gameTime">18:42</strong></div>
-          <div class="top-actions">
-            <button class="icon-btn" id="soundBtn" title="环境音">⌁</button>
-            <button class="icon-btn" id="pinBtn" title="始终置顶">⌖</button>
-            <button class="window-mode" id="modeBtn"><span>◫</span> 任务栏挂件</button>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#161d38" />
+  <title>帕帕 · 小南瓜 | 湖畔圣域</title>
+  <link rel="icon" type="image/png" href="icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700;900&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <!-- 全局持久 SVG 渐变定义（不受任意容器 display:none 影响，确保任务栏模式与主界面永远色彩饱满） -->
+  <svg id="globalTurtleDefs" style="position: absolute; width: 0; height: 0; pointer-events: none; overflow: hidden;" aria-hidden="true">
+    <defs>
+      <!-- Papa Gradients -->
+      <linearGradient id="papaShellMain" x1="25%" y1="0%" x2="75%" y2="100%">
+        <stop offset="0%" stop-color="#987e48"/>
+        <stop offset="35%" stop-color="#846838"/>
+        <stop offset="75%" stop-color="#6a5228"/>
+        <stop offset="100%" stop-color="#4e3a1a"/>
+      </linearGradient>
+      <linearGradient id="papaRimMain" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#f2ecd0"/>
+        <stop offset="100%" stop-color="#ded092"/>
+      </linearGradient>
+      <linearGradient id="papaSkinMain" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#bad0a2"/>
+        <stop offset="55%" stop-color="#9eb882"/>
+        <stop offset="100%" stop-color="#84a168"/>
+      </linearGradient>
+      <linearGradient id="papaBellyMain" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#e8efba"/>
+        <stop offset="100%" stop-color="#cdd892"/>
+      </linearGradient>
+
+      <!-- Pumpkin Gradients -->
+      <linearGradient id="pumpkinShellMain" x1="25%" y1="0%" x2="75%" y2="100%">
+        <stop offset="0%" stop-color="#7dbf56"/>
+        <stop offset="35%" stop-color="#68ab42"/>
+        <stop offset="75%" stop-color="#4e8a2d"/>
+        <stop offset="100%" stop-color="#34661a"/>
+      </linearGradient>
+      <linearGradient id="pumpkinRimMain" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#f4f9dc"/>
+        <stop offset="100%" stop-color="#d4ebb0"/>
+      </linearGradient>
+      <linearGradient id="pumpkinSkinMain" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#d4f49c"/>
+        <stop offset="55%" stop-color="#bfe682"/>
+        <stop offset="100%" stop-color="#a0cc64"/>
+      </linearGradient>
+      <linearGradient id="pumpkinBellyMain" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#f0fbcc"/>
+        <stop offset="100%" stop-color="#d6f09e"/>
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <main class="app-shell" id="appShell">
+    <section class="sanctuary" id="sanctuary">
+      <div class="ambient aurora-one"></div>
+      <div class="ambient aurora-two"></div>
+      <header class="topbar">
+        <div class="brand"><span class="brand-mark">☾</span>
+          <div><b>湖畔圣域</b><small>PA PA &amp; PUMPKIN</small></div>
+        </div>
+        <div class="season-pill"><i></i> 夏末 · 第 28 天 <span>◷</span> <strong id="gameTime">18:42</strong></div>
+        <div class="top-actions">
+          <button class="icon-btn" id="themeBtn" title="切换昼夜主题">☀️ 白天</button>
+          <button class="icon-btn" id="layoutBtn" title="庭院布置模式">🛠️ 布置</button>
+          <button class="icon-btn" id="houseWorkshopBtn" title="圣域府邸工坊 (升级或更换房屋)">🏡 房屋</button>
+          <button class="icon-btn" id="marketBtn" title="英雄集市 (英雄币商城)">🛍️ 集市</button>
+          <button class="icon-btn" id="soundBtn" title="圣域留声机 · 环境音选曲">📻 环境音</button>
+          <button class="icon-btn" id="pinBtn" title="始终置顶">⌖</button>
+          <button class="window-mode" id="modeBtn"><span>◫</span> 任务栏挂件</button>
+          <div class="window-ctrl-group">
+            <button class="icon-btn win-ctrl" id="minWinBtn" title="最小化">—</button>
+            <button class="icon-btn win-ctrl" id="maxWinBtn" title="最大化/还原">口</button>
+            <button class="icon-btn win-ctrl win-close" id="closeWinBtn" title="关闭窗口">✕</button>
           </div>
-        </header>
+        </div>
+      </header>
 
-        <aside class="sidebar left-sidebar">
-          <div class="section-caption">居住者</div>
-          <div id="petCards"></div>
-          <button class="add-care" id="careBtn"><span>✦</span> 进行一次照料</button>
-          <div class="quote-card"><span class="quote-moon">☽</span><p id="quoteText">“慢慢长大，也是一种抵达。”</p><small>— 湖畔絮语</small></div>
-        </aside>
+      <aside class="sidebar left-sidebar">
+        <!-- 世界探索模式切换卡片 (移至侧边栏，不遮挡中央背景与天空) -->
+        <div class="world-switch-card" id="modeNavToolbar" role="group" aria-label="世界模式切换">
+          <button class="world-switch-btn active" id="navGardenBtn" data-world-mode="garden" title="回到温馨的湖畔庭院">
+            <span class="switch-icon">🏡</span>
+            <div class="switch-info">
+              <b>湖畔庭院</b>
+              <small>禅意养成</small>
+            </div>
+          </button>
+          <button class="world-switch-btn" id="navAbyssBtn" data-world-mode="abyss" title="踏入地狱魔渊挑战">
+            <span class="switch-icon">☬</span>
+            <div class="switch-info">
+              <b>地狱魔渊</b>
+              <small>PVE 闯关</small>
+            </div>
+          </button>
+        </div>
 
-        <section class="garden-stage" id="gardenStage" aria-label="湖畔庭院">
-          <div class="distant-hills hill-a"></div><div class="distant-hills hill-b"></div>
-          <div class="star-field" id="starField"></div>
-          <div class="moon"><div class="moon-crater c1"></div><div class="moon-crater c2"></div></div>
-          <div class="cloud cloud-a"></div><div class="cloud cloud-b"></div>
-          <div class="lake-shine"></div><div class="lake" id="lake"></div>
-          <div class="shore"></div>
-          <div class="reeds reeds-a">Ⅲ Ⅲ Ⅰ</div><div class="reeds reeds-b">Ⅰ Ⅲ Ⅰ</div>
-          <div class="garden-title"><span>✦</span><div><small>PRIVATE SANCTUARY · 08.11</small><h1>今天也要被温柔照顾</h1></div></div>
-          <div class="build-tip"><kbd>拖 拽</kbd><span>移动庭院摆件</span></div>
-          <div id="decorLayer" class="decor-layer"></div>
-          <div id="turtleLayer" class="turtle-layer"></div>
-          <button class="chest" id="chest" title="打开今日探索宝箱"><span>✦</span><i></i></button>
-          <div class="zen-float" id="zenFloat">+1 Zen</div>
-          <div class="typing-sparkles" id="typingSparkles"></div>
-          <div class="bubble-note" id="bubbleNote"><span class="bubble-icon">◌</span><div><b id="bubbleTitle">喝口水吧</b><small id="bubbleBody">帕帕说：慢一点，也没关系。</small></div><button aria-label="关闭提醒">×</button></div>
+        <div class="section-caption">居住者</div>
+        <div id="petCards"></div>
+        <div class="quote-card"><span class="quote-moon">☽</span>
+          <p id="quoteText">“慢慢长大，也是一种抵达。”</p><small>— 湖畔絮语</small>
+        </div>
+      </aside>
+
+      <section class="garden-stage" id="gardenStage" aria-label="湖畔庭院">
+        <!-- 庭院布置模式控制条 -->
+        <div class="layout-banner hidden" id="layoutBanner">
+          <div class="layout-banner-info">
+            <b>🛠️ 庭院布置模式</b>
+            <small>按住拖拽黄色高亮摆件自由落位</small>
+          </div>
+          <button class="finish-layout-btn" id="finishLayoutBtn">✓ 完成布置</button>
+        </div>
+        <div class="distant-hills hill-a"></div>
+        <div class="distant-hills hill-b"></div>
+        <div class="star-field" id="starField"></div>
+        <div class="moon" id="moonBody">
+          <div class="moon-crater c1"></div>
+          <div class="moon-crater c2"></div>
+        </div>
+        <div class="sun" id="sunBody">
+          <div class="sun-flare"></div>
+        </div>
+        <div class="cloud cloud-a"></div>
+        <div class="cloud cloud-b"></div>
+        <div class="lake-shine"></div>
+        <div class="lake" id="lake"></div>
+        <section class="land-region terrain-region" data-terrain="land" aria-label="晨露草坪">
+          <div class="land-path"></div>
+          <div class="grass-patch patch-a"></div>
+          <div class="grass-patch patch-b"></div>
+          <div class="tiny-flowers">✦ · ✿ · ✦</div>
         </section>
-
-        <aside class="sidebar right-sidebar">
-          <div class="stat-head"><div><span class="section-caption">今日禅意</span><b id="zenPoints">2,480</b><small>ZEN POINTS</small></div><div class="coin">✦</div></div>
-          <div class="daily-progress"><div><span>晨间宁静</span><b id="dailyProgress">3 / 5</b></div><div class="progress-track"><i id="dailyBar" style="width:60%"></i></div><small>再完成 2 次互动，收下今日礼物</small></div>
-          <div class="section-caption friends-caption">双人共养</div>
-          <div class="channel-card"><div class="avatars"><span>🐢</span><span>🌙</span></div><div><b id="channelName">湖畔小队</b><small id="channelId">频道 · PAPA-0828</small></div><button id="copyChannel" title="复制频道 ID">⧉</button></div>
-          <div class="sync-state"><i></i><span id="syncText">实时同步已开启</span></div>
-          <button class="messenger-preview" id="openMessenger"><span class="mail-icon">✉</span><span><b>飞鸽传书</b><small id="mailPreview">给远方的 TA 写一封信</small></span><em>›</em></button>
-          <div class="section-caption focus-caption">专注时刻</div>
-          <div class="focus-card"><div class="focus-top"><span>🍅 专注番茄钟</span><button id="focusSettings">···</button></div><b id="focusTime">25:00</b><p>专注后，帕帕和小南瓜会为你献上奖励。</p><button id="focusBtn">开始专注 <span>→</span></button></div>
-        </aside>
-
-        <nav class="bottom-nav" aria-label="功能导航">
-          <button class="nav-item active" data-panel="garden"><span>⌂</span>庭院</button>
-          <button class="nav-item" data-panel="shop"><span>♧</span>商店</button>
-          <button class="nav-item" data-panel="collection"><span>✦</span>图鉴</button>
-          <button class="nav-item" data-panel="build"><span>⌘</span>建造</button>
-          <div class="nav-status"><i></i><span id="statusText">一切安好</span></div>
-        </nav>
+        <section class="pond-region terrain-region" data-terrain="pond" aria-label="月光池塘">
+          <div class="pond-depth"></div>
+          <div class="lily lily-a">✦</div>
+          <div class="lily lily-b">✦</div>
+          <div class="pond-stones">● · ●</div>
+        </section>
+        <div class="garden-title"><span>✦</span>
+          <div><small>PRIVATE SANCTUARY · 08.11</small>
+            <h1>今天也要被温柔照顾</h1>
+          </div>
+        </div>
+        <div id="decorLayer" class="decor-layer"></div>
+        <div id="turtleLayer" class="turtle-layer"></div>
+        <button class="chest" id="chest" title="打开今日探索宝箱"><span>✦</span><i></i></button>
+        <div class="zen-float" id="zenFloat">+1 Zen</div>
+        <div class="typing-sparkles" id="typingSparkles"></div>
+        <div class="bubble-note" id="bubbleNote"><span class="bubble-icon">◌</span>
+          <div><b id="bubbleTitle">喝口水吧</b><small id="bubbleBody">帕帕说：慢一点，也没关系。</small></div><button
+            aria-label="关闭提醒">×</button>
+        </div>
       </section>
 
-      <section class="widget-view" id="widgetView" aria-label="任务栏陪伴挂件">
-        <div class="widget-handle">⋮⋮</div>
-        <div class="widget-water"></div>
-        <div class="widget-title"><b>帕帕 · 小南瓜</b><small id="widgetMessage">正在任务栏巡逻</small></div>
-        <div class="widget-turtles" id="widgetTurtles"></div>
-        <div class="widget-stats"><span>✦ <b id="widgetZen">2480</b></span><span>◌ <b id="widgetMood">满心欢喜</b></span></div>
-        <button id="expandWidget">打开圣域 ↗</button>
-      </section>
-    </main>
+      <!-- 魔渊 Roguelike PVE 挑战主舞台 -->
+      <section class="abyss-stage hidden" id="abyssStage" aria-label="魔渊挑战">
+        <div class="abyss-backdrop">
+          <div class="abyss-vortex"></div>
+          <div class="abyss-fog fog-a"></div>
+          <div class="abyss-fog fog-b"></div>
+          <div class="abyss-runes">☬ · ☫ · ☬</div>
+        </div>
 
-    <section class="overlay hidden" id="overlay" aria-live="polite">
-      <div class="modal" id="modal"></div>
+        <!-- 视图 1：魔渊大厅与出战英雄选择 -->
+        <div class="abyss-view-lobby" id="abyssLobbyView">
+          <button class="abyss-back-btn" id="abyssBackGardenBtn">‹ 返回庭院</button>
+          <div class="abyss-header">
+            <div class="abyss-tag">☬ DEMON ABYSS · PVE 肉鸽深渊试炼</div>
+            <h2>选择出战乌龟</h2>
+            <p>继承庭院培养等级，消耗 100 禅意开启 5 大章节 38 关深渊挑战</p>
+          </div>
+
+          <div class="hero-select-grid">
+            <!-- 战士：帕帕 -->
+            <div class="hero-pick-card selected" id="pickPapaCard" data-hero="papa">
+              <div class="hero-pick-badge">🛡️ 战士 · 铁甲玄武</div>
+              <div class="hero-avatar papa-avatar">🐢</div>
+              <h3 class="hero-name">帕帕 <small id="lobbyPapaLvl">Lv.1</small></h3>
+              <div class="hero-specialty">特性：重装护甲 · 破甲震击 · 荆棘反伤</div>
+              <div class="hero-stats-list">
+                <div class="hero-stat-row"><span>❤️ 生命 (HP)</span><b id="papaStatHp">260</b></div>
+                <div class="hero-stat-row"><span>⚔️ 力量 (ATK)</span><b id="papaStatAtk">36</b></div>
+                <div class="hero-stat-row"><span>🛡️ 防御 (DEF)</span><b id="papaStatDef">24</b></div>
+                <div class="hero-stat-row"><span>⚡ 速度 (SPD)</span><b id="papaStatSpd">12</b></div>
+              </div>
+            </div>
+
+            <!-- 法师：小南瓜 -->
+            <div class="hero-pick-card" id="pickPumpkinCard" data-hero="pumpkin">
+              <div class="hero-pick-badge mage-badge">🔮 法师 · 灵火玄龟</div>
+              <div class="hero-avatar pumpkin-avatar">🐢</div>
+              <h3 class="hero-name">小南瓜 <small id="lobbyPumpkinLvl">Lv.1</small></h3>
+              <div class="hero-specialty">特性：高爆法术 · 灼烧冰封 · 灵能护盾</div>
+              <div class="hero-stats-list">
+                <div class="hero-stat-row"><span>❤️ 生命 (HP)</span><b id="pumpkinStatHp">180</b></div>
+                <div class="hero-stat-row"><span>⚔️ 力量 (ATK)</span><b id="pumpkinStatAtk">52</b></div>
+                <div class="hero-stat-row"><span>🛡️ 防御 (DEF)</span><b id="pumpkinStatDef">14</b></div>
+                <div class="hero-stat-row"><span>⚡ 速度 (SPD)</span><b id="pumpkinStatSpd">18</b></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="abyss-lobby-footer">
+            <div class="abyss-cost-info">
+              <span>✦ 本次挑战消耗：<b>100 禅意</b></span>
+              <small>当前禅意储备：<b id="lobbyZenBalance">2,480</b></small>
+            </div>
+            <button class="abyss-start-btn" id="startAbyssRunBtn">⚔️ 踏入魔渊开启挑战</button>
+          </div>
+        </div>
+
+        <!-- 视图 2：魔渊回合制战斗竞技场 -->
+        <div class="abyss-view-battle hidden" id="abyssBattleView">
+          <!-- 关卡顶部栏 -->
+          <div class="battle-topbar">
+            <div class="battle-stage-info">
+              <span class="chapter-badge" id="battleChapterBadge">第 1 章 · 枯骨幽穴</span>
+              <b class="stage-name" id="battleStageName">关卡 1-1 [小兵]</b>
+            </div>
+            <div class="battle-ctrls">
+              <button class="battle-btn" id="battleSpeedBtn" title="切换战斗速度">⚡ 1x 速</button>
+              <button class="battle-btn" id="battleAutoBtn" title="开启/关闭自动战斗">🤖 自动: 关</button>
+              <button class="battle-btn forfeit-btn" id="battleForfeitBtn" title="放弃本次挑战">🏳️ 撤退</button>
+            </div>
+          </div>
+
+          <!-- 竞技场对战区 -->
+          <div class="battle-arena" id="battleArena">
+            <!-- 玩家英雄卡 -->
+            <div class="fighter-card hero-fighter" id="heroFighterCard">
+              <div class="fighter-avatar-box">
+                <div class="fighter-avatar" id="heroBattleAvatar">🐢</div>
+                <span class="fighter-class-tag" id="heroClassTag">战士</span>
+              </div>
+              <div class="fighter-info">
+                <div class="fighter-name-row">
+                  <b id="heroBattleName">帕帕</b>
+                  <span class="dungeon-lvl" id="heroDungeonLvl">Lv.1</span>
+                </div>
+                <div class="fighter-hp-bar">
+                  <i class="hp-fill" id="heroHpFill" style="width: 100%;"></i>
+                  <span class="hp-text" id="heroHpText">260 / 260</span>
+                </div>
+                <div class="fighter-mp-bar">
+                  <i class="mp-fill" id="heroMpFill" style="width: 100%;"></i>
+                  <span class="mp-text" id="heroMpText">100 / 100 MP</span>
+                </div>
+                <div class="fighter-shield-bar" id="heroShieldBar" style="display: none;">
+                  <i class="shield-fill" id="heroShieldFill"></i>
+                  <span class="shield-text" id="heroShieldText">🛡️ 护盾 0</span>
+                </div>
+                <div class="fighter-buffs" id="heroBuffs"></div>
+              </div>
+            </div>
+
+            <!-- 中央对抗与行动指示区 -->
+            <div class="battle-center-hub">
+              <div class="turn-indicator" id="turnIndicator">✦ 你的回合 ✦</div>
+              <div class="floating-damage-box" id="floatingDamageBox"></div>
+              <div class="battle-combat-log" id="battleCombatLog">
+                <div class="log-entry">魔渊试炼开始，凝神迎战！</div>
+              </div>
+            </div>
+
+            <!-- 敌方怪物卡 -->
+            <div class="fighter-card monster-fighter" id="monsterFighterCard">
+              <div class="fighter-avatar-box">
+                <div class="fighter-avatar monster-avatar" id="monsterBattleAvatar">💀</div>
+                <span class="fighter-class-tag monster-tag" id="monsterClassTag">幽冥枯骨</span>
+              </div>
+              <div class="fighter-info">
+                <div class="fighter-name-row">
+                  <b id="monsterBattleName">骷髅斥候</b>
+                  <span class="dungeon-lvl" id="monsterDungeonLvl">Lv.1</span>
+                </div>
+                <div class="fighter-hp-bar">
+                  <i class="hp-fill monster-hp" id="monsterHpFill" style="width: 100%;"></i>
+                  <span class="hp-text" id="monsterHpText">180 / 180</span>
+                </div>
+                <div class="fighter-rage-bar" id="monsterRageBar">
+                  <i class="rage-fill" id="monsterRageFill" style="width: 0%;"></i>
+                  <span class="rage-text" id="monsterRageText">⚡ 怒气 0%</span>
+                </div>
+                <div class="fighter-shield-bar" id="monsterShieldBar" style="display: none;">
+                  <i class="shield-fill" id="monsterShieldFill"></i>
+                  <span class="shield-text" id="monsterShieldText">🛡️ 护盾 0</span>
+                </div>
+                <div class="monster-intent" id="monsterIntent">⚔️ 意图：普通重击</div>
+                <div class="fighter-buffs" id="monsterBuffs"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 特效与动画层 -->
+          <div class="battle-fx-layer" id="battleFxLayer"></div>
+
+          <!-- 底部技能牌组操作栏 -->
+          <div class="battle-action-deck">
+            <div class="deck-title-row">
+              <span>技能与法术</span>
+              <div class="passive-perks-tray" id="passivePerksTray" title="当前装备的海克斯被动秘宝"></div>
+            </div>
+            <div class="skill-cards-grid" id="skillCardsGrid">
+              <!-- 基础普攻 -->
+              <button class="skill-card-btn basic-atk ready" id="basicAtkBtn" title="普通攻击: 造成 100% 力量物理伤害并回复法力/战意">
+                <span class="skill-icon">⚔️</span>
+                <div class="skill-meta">
+                  <div class="skill-title-row">
+                    <b>普通攻击</b>
+                    <span class="skill-cost-badge badge-ready">+MP 回蓝</span>
+                  </div>
+                  <small>造成 100% 力量物理伤害，并回复 +25 点战意/法力</small>
+                </div>
+              </button>
+              <!-- 动态装备的主动技能插槽 -->
+              <div id="dynamicSkillSlots" class="dynamic-skill-slots"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 全屏通关史诗级动画舞台 -->
+        <div class="victory-cinematic hidden" id="victoryCinematic">
+          <div class="victory-rays"></div>
+          <div class="confetti-particles" id="confettiParticles"></div>
+          <div class="victory-hero-podium">
+            <div class="podium-halo"></div>
+            <div class="victory-avatar" id="victoryAvatar">🐢</div>
+            <div class="victory-crown">👑</div>
+          </div>
+          <div class="victory-titles">
+            <h1 class="victory-main-text">🏆 征服魔渊 · 终焉凯旋！</h1>
+            <p class="victory-sub-text">历经 5 大章节 38 关严酷试炼，魔渊封印已彻底肃清！</p>
+          </div>
+          <div class="victory-chest-anim" id="victoryChestAnim">
+            <span class="chest-box">📦</span>
+            <div class="chest-glow"></div>
+          </div>
+        </div>
+
+        <!-- 弹层 1：小兵关四维属性强化选择 -->
+        <div class="abyss-overlay hidden" id="statChoiceOverlay">
+          <div class="choice-modal-card">
+            <div class="choice-head">
+              <span class="choice-badge">🎉 扫清小兵 · 属性重铸</span>
+              <h3>选择一项四维属性进行永久突破</h3>
+            </div>
+            <div class="choice-cards-grid">
+              <div class="stat-choice-card" data-stat-type="hp">
+                <span class="stat-icon">❤️</span>
+                <b>生命甘霖</b>
+                <p>最大生命 +50 HP</p>
+                <small>并立即回复 30% 已损生命</small>
+              </div>
+              <div class="stat-choice-card" data-stat-type="atk">
+                <span class="stat-icon">⚔️</span>
+                <b>战意淬炼</b>
+                <p>力量 (ATK) +12</p>
+                <small>永久提升全技能基础伤害</small>
+              </div>
+              <div class="stat-choice-card" data-stat-type="def">
+                <span class="stat-icon">🛡️</span>
+                <b>磐石坚甲</b>
+                <p>防御 (DEF) +10</p>
+                <small>按比例百分比降低所受伤害</small>
+              </div>
+              <div class="stat-choice-card" data-stat-type="spd">
+                <span class="stat-icon">⚡</span>
+                <b>迅风突刺</b>
+                <p>速度 (SPD) +8</p>
+                <small>提高先手概率与暴击几率</small>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 弹层 2：升级/精英/Boss 海克斯技能三选一 -->
+        <div class="abyss-overlay hidden" id="augmentChoiceOverlay">
+          <div class="choice-modal-card augment-modal">
+            <div class="choice-head">
+              <span class="choice-badge hextech-badge" id="augmentChoiceBadge">✨ 海克斯秘宝三选一</span>
+              <h3 id="augmentChoiceTitle">境界突破，选取新的主动技能或被动</h3>
+            </div>
+            <div class="augment-cards-grid" id="augmentCardsContainer"></div>
+          </div>
+        </div>
+
+        <!-- 弹层 3：战斗结算 (大捷 / 惜败) -->
+        <div class="abyss-overlay hidden" id="battleResultOverlay">
+          <div class="result-modal-card" id="resultModalCard">
+            <div class="result-banner" id="resultBanner">🏆 勇闯魔渊 · 试炼大捷！</div>
+            <p class="result-desc" id="resultDesc">你成功征服了全部 5 大章节 38 关深渊试炼！</p>
+            <div class="result-rewards-box">
+              <div class="reward-item">
+                <span>🪙 获得英雄币</span>
+                <b id="resultHeroCoins">+600</b>
+              </div>
+              <div class="reward-item">
+                <span>⚔️ 通关层数</span>
+                <b id="resultStageSummary">38 / 38</b>
+              </div>
+            </div>
+            <button class="result-close-btn" id="resultCloseBtn">返回魔渊大厅</button>
+          </div>
+        </div>
+
+        <!-- 弹层 4：深渊奇遇抉择事件 -->
+        <div class="abyss-overlay hidden" id="abyssEventOverlay">
+          <div class="choice-modal-card event-modal-card">
+            <div class="choice-head">
+              <span class="choice-badge event-badge" id="eventBadge">🔮 深渊奇遇 · 命运抉择</span>
+              <h3 id="eventTitle">神秘深渊祭坛</h3>
+            </div>
+            <div class="event-illustration" id="eventIllustration">🏛️</div>
+            <p class="event-description" id="eventDescription">在深渊幽暗的废墟深处，你发现了一座散发着古老微光的玄武祭坛...</p>
+            <div class="event-options-list" id="eventOptionsContainer"></div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="sidebar right-sidebar">
+        <div class="stat-head">
+          <div><span class="section-caption">今日禅意</span><b id="zenPoints">2,480</b><small>ZEN POINTS</small></div>
+          <div class="coin">✦</div>
+        </div>
+        <div class="contribution-card" id="openContributionCard" title="查看双人禅意贡献榜与细分明细">
+          <div class="contrib-top">
+            <span class="contrib-badge">✦ 共养贡献榜</span>
+            <small id="contribRankSummary">两人共修中</small>
+          </div>
+          <div class="contrib-track" id="contribBarTrack">
+            <i id="contribMeBar" style="width: 50%;" title="我"></i>
+            <i id="contribPartnerBar" style="width: 50%;" title="伙伴"></i>
+          </div>
+          <div class="contrib-names">
+            <span id="contribMeLabel">我 0%</span>
+            <span id="contribPartnerLabel">伙伴 0%</span>
+          </div>
+        </div>
+        <div class="daily-progress">
+          <div><span>晨间宁静</span><b id="dailyProgress">3 / 5</b></div>
+          <div class="progress-track"><i id="dailyBar" style="width:60%"></i></div><small>再完成 2 次互动，收下今日礼物</small>
+        </div>
+        <div class="quest-card">
+          <div><span>今日修行</span><b id="questText">键盘禅意 0 / 30</b></div>
+          <div class="quest-mini"><i id="questBar"></i></div><button id="claimQuest" disabled>领取 80 ZEN</button>
+        </div>
+        <div class="section-caption friends-caption">双人共养</div>
+        <div class="channel-card">
+          <div class="avatars" id="channelAvatars"><span>🐢</span><span>🌙</span></div>
+          <div><b id="channelName">湖畔小队</b><small id="channelId">频道 · PAPA-0828</small></div>
+          <button id="editProfileBtn" class="channel-profile-btn" title="修改我的共养身份 (昵称/头像)">✎</button>
+          <button id="copyChannel" title="复制频道 ID">⧉</button>
+        </div>
+        <div class="sync-state"><i></i><span id="syncText">实时同步已开启</span></div>
+        <button class="messenger-preview" id="openMessenger"><span class="mail-icon">✉</span><span><b>飞鸽传书</b><small
+              id="mailPreview">给远方的 TA 写一封信</small></span><em>›</em></button>
+        <div class="section-caption focus-caption">专注时刻</div>
+        <div class="focus-card">
+          <div class="focus-top">
+            <span>🍅 专注番茄钟</span>
+            <button id="focusSettings" title="自定义专注时长 (1~60分钟)">⚙ 设置</button>
+          </div>
+          <b id="focusTime">25:00</b>
+          <div class="focus-preset-chips" id="focusPresetChips">
+            <button class="focus-chip" data-mins="10">10分</button>
+            <button class="focus-chip" data-mins="15">15分</button>
+            <button class="focus-chip active" data-mins="25">25分</button>
+            <button class="focus-chip" data-mins="45">45分</button>
+            <button class="focus-chip" data-mins="60">60分</button>
+          </div>
+          <p id="focusDesc">专注后，帕帕和小南瓜会为你献上专属欢呼与禅意成长！</p>
+          <button id="focusBtn">开始专注 <span>→</span></button>
+        </div>
+      </aside>
+
+      <nav class="bottom-nav" aria-label="功能导航">
+        <button class="nav-item active" data-panel="garden"><span>⌂</span>庭院</button>
+        <button class="nav-item" data-panel="shop"><span>♧</span>商店</button>
+        <button class="nav-item" data-panel="collection"><span>✦</span>图鉴</button>
+        <div class="nav-status"><i></i><span id="statusText">一切安好</span></div>
+      </nav>
     </section>
-    <div class="toast-stack" id="toastStack"></div>
-    <script src="app.js"></script>
-  </body>
+
+    <section class="widget-view" id="widgetView" aria-label="任务栏陪伴挂件">
+      <div class="widget-handle" id="widgetHandle" title="按住拖拽任务栏位置">⋮⋮</div>
+      <div class="widget-decor-bg">
+        <div class="widget-water"></div>
+        <span class="widget-flora f1">🪷</span>
+        <span class="widget-flora f2">🌾</span>
+        <span class="widget-flora f3">🪴</span>
+      </div>
+      <div class="widget-title" id="widgetTitleBlock">
+        <div class="widget-title-top">
+          <span class="widget-badge">LIVE</span>
+          <b>帕帕与小南瓜</b>
+        </div>
+        <small id="widgetMessage">🌊 月泉游弋中...</small>
+      </div>
+      <div class="widget-turtles" id="widgetTurtles"></div>
+      <div class="widget-actions" id="widgetActionsBlock">
+        <button class="widget-btn" id="widgetFocusBtn" title="专注时钟">⏱️ <span id="widgetTimerText">专注</span></button>
+        <button class="widget-btn" id="widgetMailBtn" title="飞鸽传书">✉ 来信</button>
+        <button class="widget-btn" id="widgetRankBtn" title="禅意贡献榜">🏆 贡献</button>
+      </div>
+      <div class="widget-stats" id="widgetStatsBlock">
+        <span class="keys-tag" title="本次程序启动期间键盘敲击总次数">⌨️ <b id="widgetKeystrokes">0</b> 次</span>
+        <span>✦ <b id="widgetZen">2480</b></span>
+        <span class="mood-tag">◌ <b id="widgetMood">满心欢喜</b></span>
+      </div>
+      <button id="expandWidget" class="expand-btn">展开圣域 ↗</button>
+    </section>
+  </main>
+
+  <!-- 启动动画 Loading Screen -->
+  <div id="appSplash" class="app-splash">
+    <div class="splash-card">
+      <div class="splash-badge">✦ 帕帕与小南瓜 ✦</div>
+      <h1 class="splash-title">帕帕与小南瓜</h1>
+      <div class="splash-subtitle">Papa &amp; Pumpkin's Sanctuary</div>
+      <div class="splash-stage">
+        <div class="turtle splash-turtle papa-bounce turtle-papa" id="splashPapa">
+          <div class="turtle-sprite"></div>
+        </div>
+        <div class="turtle splash-turtle pumpkin-bounce turtle-pumpkin" id="splashPumpkin">
+          <div class="turtle-sprite" style="transform: scaleX(-1);"></div>
+        </div>
+        <div class="splash-shadows">
+          <span class="shadow s1"></span>
+          <span class="shadow s2"></span>
+        </div>
+      </div>
+      <div class="splash-loader">
+        <div class="splash-bar"><i id="splashProgressBar"></i></div>
+        <span id="splashStatusText">正在准备湖畔栖息地...</span>
+      </div>
+    </div>
+  </div>
+
+  <section class="overlay hidden" id="overlay" aria-live="polite">
+    <div class="modal" id="modal"></div>
+  </section>
+  <div class="toast-stack" id="toastStack"></div>
+  <script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
+  <script>
+    if (typeof mqtt === 'undefined') {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/5.10.1/mqtt.min.js"><\/script>');
+    }
+  </script>
+  <!-- 模块化脚本按依赖顺序加载 -->
+  <script src="js/state.js"></script>
+  <script src="js/sync.js"></script>
+  <script src="js/garden.js"></script>
+  <script src="js/modals.js"></script>
+  <script src="js/market.js"></script>
+  <script src="js/abyss.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/main.js"></script>
+</body>
+
 </html>

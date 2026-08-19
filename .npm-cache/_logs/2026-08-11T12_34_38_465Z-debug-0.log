@@ -1,0 +1,19 @@
+0 verbose cli C:\nvm4w\nodejs\node.exe C:\nvm4w\nodejs\node_modules\npm\bin\npm-cli.js
+1 info using npm@10.8.2
+2 info using node@v20.20.2
+3 silly config load:file:D:\tool\nvm\v20.20.2\node_modules\npm\npmrc
+4 silly config load:file:C:\Users\16948\Documents\ChatGPT\帕帕-小南瓜\.npmrc
+5 silly config load:file:C:\Users\16948\.npmrc
+6 silly config load:file:C:\nvm4w\nodejs\etc\npmrc
+7 verbose title npm run package:taskbar-repeat
+8 verbose argv "run" "package:taskbar-repeat"
+9 verbose logfile logs-max:10 dir:C:\Users\16948\Documents\ChatGPT\帕帕-小南瓜\.npm-cache\_logs\2026-08-11T12_34_38_465Z-
+10 verbose logfile C:\Users\16948\Documents\ChatGPT\帕帕-小南瓜\.npm-cache\_logs\2026-08-11T12_34_38_465Z-debug-0.log
+11 silly logfile start cleaning logs, removing 1 files
+12 silly logfile done cleaning log files
+13 verbose cwd C:\Users\16948\Documents\ChatGPT\帕帕-小南瓜
+14 verbose os Windows_NT 10.0.26200
+15 verbose node v20.20.2
+16 verbose npm  v10.8.2
+17 verbose exit 0
+18 info ok

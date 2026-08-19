@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>帕帕与小南瓜 · 远程频道数据监控器</title>
+  <link rel="icon" type="image/png" href="icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700;900&display=swap"
+    rel="stylesheet" />
+  <style>
+    :root {
+      --font: "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --mono: "DM Mono", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font);
+      background: radial-gradient(circle at 50% 20%, #1c2242 0%, #101428 60%, #0a0d1b 100%);
+      color: #e2e8f8;
+      margin: 0;
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 920px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      color: #ffeed2;
+      font-size: 22px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+    }
+
+    .card {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+    }
+
+    .card label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #f7d498;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    input {
+      flex: 1;
+      padding: 10px 14px;
+      background: rgba(10, 13, 30, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      color: #fff;
+      font-family: var(--mono);
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus {
+      border-color: #f8cb73;
+    }
+
+    button {
+      padding: 10px 20px;
+      background: linear-gradient(90deg, #f7caa0, #efb3c2);
+      border: none;
+      border-radius: 8px;
+      color: #3b253d;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 13px;
+      box-shadow: 0 4px 14px rgba(247, 202, 160, 0.3);
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      filter: brightness(1.08);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(247, 202, 160, 0.5);
+    }
+
+    .card h3 {
+      margin: 0 0 14px;
+      font-size: 15px;
+      color: #ffdca4;
+    }
+
+    .log-list {
+      max-height: 520px;
+      overflow-y: auto;
+      font-family: var(--mono);
+      font-size: 12.5px;
+    }
+
+    .log-item {
+      background: rgba(11, 15, 34, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-left: 4px solid #7be2c5;
+      margin-bottom: 10px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .log-time {
+      color: #9ea9cc;
+      font-size: 11px;
+      margin-bottom: 6px;
+    }
+
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: #bbf7d0;
+      line-height: 1.5;
+    }
+  </style>
+  <script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
+</head>
+
+<body>
+  <div class="container">
+    <h1>📡 帕帕与小南瓜 · 远程频道数据监控器</h1>
+    <div class="card">
+      <label>输入要监听的频道 ID (Channel ID):</label>
+      <div class="controls">
+        <input id="channelInput" value="PAPA-0828" placeholder="例如 PAPA-0828">
+        <button id="connectBtn">开始监听</button>
+      </div>
+      <small style="color:#94a3b8;margin-top:8px;display:block;">状态：<span id="statusText">未连接</span></small>
+    </div>
+    <div class="card">
+      <h3>实时传输数据包日志</h3>
+      <div class="log-list" id="logList">
+        <div style="color:#64748b;padding:20px;text-align:center;">暂无收到数据，请确认频道 ID 并操作应用产生数据。</div>
+      </div>
+    </div>
+  </div>
+  <script>
+    let client = null;
+    const connectBtn = document.getElementById('connectBtn');
+    const channelInput = document.getElementById('channelInput');
+    const statusText = document.getElementById('statusText');
+    const logList = document.getElementById('logList');
+
+    connectBtn.onclick = () => {
+      const channel = channelInput.value.trim().toUpperCase();
+      if (!channel) return alert('请输入频道 ID');
+      if (client) client.end(true);
+
+      const topic = `papa-pumpkin-sanctuary/channel/${channel}`;
+      statusText.textContent = `正在连接频道 ${channel}...`;
+
+      client = mqtt.connect('wss://broker.emqx.io:8084/mqtt', {
+        clientId: 'monitor_' + Math.random().toString(16).slice(2, 8),
+        clean: true
+      });
+
+      client.on('connect', () => {
+        statusText.textContent = `🟢 已成功监听频道：${channel} (主题: ${topic})`;
+        statusText.style.color = '#4ade80';
+        client.subscribe(topic);
+      });
+
+      client.on('message', (t, msg) => {
+        try {
+          const data = JSON.parse(msg.toString());
+          addLog(data);
+        } catch (e) {
+          addLog(msg.toString());
+        }
+      });
+
+      client.on('error', (err) => {
+        statusText.textContent = `🔴 连接错误: ${err.message}`;
+        statusText.style.color = '#f87171';
+      });
+    };
+
+    function escapeHTML(str) {
+      return String(str || '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#039;', '"': '&quot;' }[char]));
+    }
+
+    function addLog(data) {
+      if (logList.children[0]?.style?.textAlign === 'center') {
+        logList.innerHTML = '';
+      }
+      const div = document.createElement('div');
+      div.className = 'log-item';
+      const time = new Date().toLocaleTimeString();
+
+      const senderName = data.senderName || '未知用户';
+      const senderAvatar = data.senderAvatar || '📡';
+      const senderId = data.senderId || '未知';
+
+      let quickSummary = '';
+      const payload = data.payload || data;
+      if (payload && payload.contributions) {
+        const users = Object.values(payload.contributions).map(u => `${u.avatar || '👤'} ${u.name || '用户'}: ${u.totalZen || 0} ZEN (今日+${u.todayZen || 0})`).join(' | ');
+        quickSummary = `<div style="color:#fcd34d;font-size:11.5px;margin-top:4px;">📊 禅意贡献统计: ${escapeHTML(users)}</div>`;
+      }
+      if (payload && Array.isArray(payload.letters) && payload.letters.length) {
+        const latest = payload.letters[payload.letters.length - 1];
+        quickSummary += `<div style="color:#a7f3d0;font-size:11.5px;margin-top:3px;">💌 最新信件 (${escapeHTML(latest.senderAvatar || '💌')} ${escapeHTML(latest.senderName || '共养者')}): “${escapeHTML(latest.body)}”</div>`;
+      }
+
+      div.innerHTML = `
+        <div class="log-time">
+          ⏱️ ${time} &nbsp;|&nbsp; 
+          <b>${escapeHTML(senderAvatar)} ${escapeHTML(senderName)}</b> 
+          <span style="opacity:0.75;font-size:10.5px;">[ID: ${escapeHTML(senderId)}]</span>
+        </div>
+        ${quickSummary}
+        <pre style="margin-top:6px;">${escapeHTML(JSON.stringify(payload, null, 2))}</pre>
+      `;
+      logList.insertBefore(div, logList.firstChild);
+
+      // Keep max 100 log entries to prevent memory / DOM lag
+      if (logList.children.length > 100) {
+        logList.removeChild(logList.lastChild);
+      }
+    }
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,76 @@
+﻿:root {
+  --ink: #fefcf4;
+  --muted: #b9c1db;
+  --paper: #1c223c;
+  --paper-hover: #262e4e;
+  --violet: #958df2;
+  --purple: #6a5ec9;
+  --pink: #ff9fb8;
+  --mint: #86e4cf;
+  --gold: #f8cb73;
+  --gold-glow: rgba(248, 203, 115, 0.4);
+  --line: rgba(255, 255, 255, 0.14);
+  --line-strong: rgba(255, 255, 255, 0.24);
+  --font: "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --mono: "DM Mono", "Cascadia Code", monospace;
+  --glass-bg: rgba(24, 30, 56, 0.65);
+  --glass-border: rgba(255, 255, 255, 0.16);
+  --glass-shadow: 0 12px 32px rgba(6, 10, 26, 0.45);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 700px;
+  min-height: 480px;
+  overflow: hidden;
+  color: var(--ink);
+  background: #0f1428;
+  font-family: var(--font);
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body.widget-body {
+  min-width: 0;
+  min-height: 0;
+  background: transparent;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border: 0;
+  outline: none;
+  user-select: none;
+  transition: all 0.2s var(--ease-smooth);
+}
+
+.app-shell {
+  min-height: 100vh;
+  position: relative;
+}
+
+.app-shell.widget-mode {
+  min-height: 0;
+  height: 100vh;
+}
+
+.sanctuary,
+.garden-stage,
+.decor-layer,
+.turtle-layer,
+.decor,
+.turtle,
+.habitat-toolbar,
+.chest {
+  -webkit-app-region: no-drag !important;
+}
+

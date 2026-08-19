@@ -1,13 +1,74 @@
 {
   "name": "papa-pumpkin-sanctuary",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "帕帕与小南瓜 · 双视界桌面陪伴",
+  "author": "ju5202",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ju5202/papa-xiaolangua.git"
+  },
   "main": "electron/main.js",
   "scripts": {
     "start": "electron .",
-    "dev": "electron ."
+    "dev": "electron .",
+    "package": "electron-builder --win nsis --config.win.artifactName=帕帕与小南瓜_Setup_${version}.${ext}",
+    "package:portable": "electron-builder --win portable --config.win.artifactName=帕帕与小南瓜.${ext}",
+    "package:dir": "electron-builder --win dir",
+    "publish:github": "electron-builder --win nsis -p always"
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
+  },
+  "build": {
+    "appId": "com.papa-pumpkin.sanctuary",
+    "productName": "帕帕与小南瓜",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "ju5202",
+        "repo": "papa-xiaolangua",
+        "private": false
+      }
+    ],
+    "files": [
+      "index.html",
+      "monitor.html",
+      "styles.css",
+      "app.js",
+      "icon.png",
+      "css/**/*",
+      "js/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "icon": "icon.png",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowElevation": false,
+      "allowToChangeInstallationDirectory": false,
+      "deleteAppDataOnUninstall": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "帕帕与小南瓜"
+    }
   },
   "devDependencies": {
-    "electron": "^37.2.6"
+    "electron": "^37.2.6",
+    "electron-builder": "^26.0.12"
   }
 }

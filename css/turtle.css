@@ -1,0 +1,1167 @@
+/* ==========================================================================
+   Terrain Regions: Land & Pond (晨露草坪与月光池塘材质)
+   ========================================================================== */
+.terrain-region {
+  position: absolute;
+  overflow: hidden;
+  cursor: pointer;
+  transition: filter 0.3s, transform 0.3s, background 0.8s, border-color 0.8s, box-shadow 0.8s;
+}
+
+.terrain-region:hover {
+  filter: brightness(1.08);
+}
+
+/* 晨露草坪材质 */
+.land-region {
+  z-index: 5;
+  left: -3%;
+  bottom: -6%;
+  width: 57%;
+  height: 59%;
+  border: 3.5px solid rgba(195, 238, 148, 0.8);
+  border-radius: 22px 50% 46% 0 / 22px 46% 42% 0;
+  background:
+    radial-gradient(ellipse at 22% 16%, rgba(212, 235, 155, 0.32), transparent 28%),
+    repeating-linear-gradient(142deg, rgba(255, 255, 255, 0.04) 0 2px, transparent 3px 10px),
+    linear-gradient(145deg, #4d7a60 0%, #285450 70%, #1f394d 100%);
+  box-shadow:
+    inset 12px 12px 0 rgba(220, 250, 175, 0.35),
+    16px 16px 32px rgba(4, 14, 28, 0.55),
+    0 0 24px rgba(155, 220, 125, 0.3);
+}
+
+.land-region:before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 15% 58%, rgba(215, 230, 155, 0.38) 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at 40% 28%, rgba(215, 230, 155, 0.28) 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at 76% 65%, rgba(215, 230, 155, 0.35) 0 1.5px, transparent 2.5px);
+  background-size: 32px 28px;
+  opacity: 0.75;
+}
+
+.land-region:after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 18px;
+  border-right: 4px dashed rgba(230, 205, 145, 0.6);
+  border-radius: inherit;
+  filter: drop-shadow(4px 0 8px rgba(0, 0, 0, 0.6));
+  pointer-events: none;
+}
+
+.land-path {
+  position: absolute;
+  left: 8%;
+  bottom: 6%;
+  width: 90%;
+  height: 22%;
+  border-top: 8px dotted rgba(215, 190, 140, 0.42);
+  border-radius: 50%;
+  transform: rotate(-8deg);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
+}
+
+.grass-patch {
+  position: absolute;
+  width: 82px;
+  height: 26px;
+  border-radius: 50%;
+  background: repeating-linear-gradient(82deg, transparent 0 4px, #8ec280 5px 7px, transparent 8px 12px);
+  opacity: 0.8;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.2));
+}
+
+.patch-a {
+  left: 6%;
+  top: 24%;
+}
+
+.patch-b {
+  right: 14%;
+  bottom: 20%;
+  transform: scale(0.8);
+}
+
+.tiny-flowers {
+  position: absolute;
+  left: 30%;
+  top: 22%;
+  color: #ffe0b2;
+  letter-spacing: 8px;
+  font-size: 11px;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.3));
+  animation: flowers-sway 4s ease-in-out infinite alternate;
+}
+
+@keyframes flowers-sway {
+  0% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  100% {
+    transform: translateY(-2px) rotate(3deg);
+  }
+}
+
+/* 月光池塘材质 */
+.pond-region {
+  z-index: 4;
+  right: -2%;
+  bottom: -4%;
+  width: 63%;
+  height: 57%;
+  border: 3.5px solid rgba(150, 242, 248, 0.82);
+  border-radius: 54% 46% 48% 52% / 46% 54% 46% 54%;
+  background:
+    radial-gradient(ellipse at 50% 25%, rgba(190, 250, 245, 0.42), transparent 20%),
+    repeating-linear-gradient(175deg, #3a7c9d 0 11px, #4d92ad 12px 14px, #30698c 15px 28px);
+  box-shadow:
+    inset 0 0 0 9px rgba(14, 75, 102, 0.5),
+    0 0 32px rgba(115, 238, 232, 0.45),
+    -14px 14px 30px rgba(10, 22, 55, 0.5);
+}
+
+.pond-region:before {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  opacity: 0.7;
+  border: 2.5px dashed rgba(185, 255, 250, 0.5);
+  border-radius: inherit;
+  animation: caustics-pulse 5s ease-in-out infinite alternate;
+}
+
+@keyframes caustics-pulse {
+  0% {
+    opacity: 0.55;
+    transform: scale(0.99);
+  }
+
+  100% {
+    opacity: 0.85;
+    transform: scale(1.01);
+  }
+}
+
+.pond-depth {
+  position: absolute;
+  width: 36%;
+  height: 32%;
+  left: 32%;
+  top: 40%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(16, 70, 105, 0.45) 0%, rgba(20, 90, 135, 0.25) 70%, transparent 100%);
+  filter: blur(6px);
+}
+
+.lily {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 15px;
+  border-radius: 50%;
+  color: #ffc2df;
+  background: radial-gradient(circle at 35% 35%, #88d4b6 0%, #68b497 70%, #46867e 100%);
+  border: 2px solid #3c7770;
+  font-size: 8px;
+  box-shadow: 0 4px 6px rgba(6, 28, 52, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+  animation: lily-bob 3.2s ease-in-out infinite;
+}
+
+.lily-a {
+  left: 26%;
+  top: 25%;
+}
+
+.lily-b {
+  right: 18%;
+  bottom: 28%;
+  animation-delay: -1.4s;
+}
+
+@keyframes lily-bob {
+
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  50% {
+    transform: translate(4px, -4px) rotate(6deg);
+  }
+}
+
+.pond-stones {
+  position: absolute;
+  right: 8%;
+  top: 18%;
+  color: rgba(225, 238, 215, 0.75);
+  font-size: 12px;
+  letter-spacing: 8px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+}
+
+.habitat-toolbar {
+  position: absolute;
+  z-index: 18;
+  bottom: 14px;
+  left: 20px;
+  display: flex;
+  gap: 5px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(15, 21, 48, 0.6);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+.habitat-toolbar button {
+  padding: 6px 11px;
+  border-radius: 7px;
+  background: transparent;
+  color: #adb5cf;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.habitat-toolbar button:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.habitat-toolbar button.active {
+  color: #fff2cc;
+  background: linear-gradient(135deg, rgba(248, 203, 115, 0.32), rgba(248, 203, 115, 0.12));
+  border: 1px solid rgba(248, 203, 115, 0.45);
+  font-weight: 700;
+  box-shadow: 0 0 10px rgba(248, 203, 115, 0.25);
+}
+
+.garden-stage.focus-pond .decor[data-zone="land"],
+.garden-stage.focus-pond .turtle[data-zone="land"] {
+  opacity: 0.18;
+  filter: grayscale(0.7);
+}
+
+.garden-stage.focus-land .decor[data-zone="pond"],
+.garden-stage.focus-land .turtle[data-zone="pond"] {
+  opacity: 0.18;
+  filter: grayscale(0.7);
+}
+
+/* ==========================================================================
+   Interactive Little Turtles (小乌龟：帕帕 & 小南瓜 高保真立体材质)
+   ========================================================================== */
+.decor-layer,
+.turtle-layer {
+  position: absolute;
+  z-index: 7;
+  inset: 0;
+  pointer-events: none !important;
+}
+
+.turtle {
+  position: absolute;
+  filter: drop-shadow(0 8px 10px rgba(8, 12, 32, 0.45));
+  cursor: grab;
+  touch-action: none;
+  z-index: 10;
+  user-select: none;
+  pointer-events: auto !important;
+  transition: filter 0.25s var(--ease-smooth);
+}
+
+.turtle.turtle-papa {
+  width: 96px;
+  height: 63px;
+}
+
+.turtle.turtle-pumpkin {
+  width: 75px;
+  height: 49px;
+}
+
+.turtle:hover {
+  cursor: grab;
+  filter: brightness(1.1) drop-shadow(0 0 16px var(--glow, rgba(248, 203, 115, 0.6)));
+}
+
+.turtle.dragging {
+  cursor: grabbing !important;
+  z-index: 100 !important;
+  filter: drop-shadow(0 16px 24px rgba(0, 0, 0, 0.6)) brightness(1.18);
+}
+
+.turtle .aura {
+  position: absolute;
+  inset: -14px;
+  border-radius: 50%;
+  opacity: 0.35;
+  background: radial-gradient(circle, var(--glow, #dab777) 0%, transparent 65%);
+  animation: pulse 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.turtle-sprite {
+  position: absolute;
+  inset: 0;
+  transform-origin: center center;
+  transition: transform 0.28s var(--ease-bounce);
+  animation: turtle-idle-bob 3.2s ease-in-out infinite alternate;
+}
+
+/* 方向控制：基础矢量图朝向左侧（与参考原画一致） */
+.turtle[data-dir="-1"] .turtle-sprite,
+.turtle.face-left .turtle-sprite {
+  transform: scaleX(1) !important;
+}
+
+.turtle[data-dir="1"] .turtle-sprite,
+.turtle.face-right .turtle-sprite {
+  transform: scaleX(-1) !important;
+}
+
+@keyframes turtle-idle-bob {
+  0% {
+    transform: translateY(0);
+  }
+
+  100% {
+    transform: translateY(-3px);
+  }
+}
+
+.turtle-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+/* 矢量部件动态：行走与游泳腿部摆动 */
+.turtle.walking .leg-front-near,
+.turtle.walking .leg-back-far {
+  animation: svg-leg-walk-1 0.42s ease-in-out infinite alternate;
+  transform-origin: 75px 85px;
+}
+
+.turtle.walking .leg-back-near,
+.turtle.walking .leg-front-far {
+  animation: svg-leg-walk-2 0.42s ease-in-out infinite alternate;
+  transform-origin: 125px 85px;
+}
+
+@keyframes svg-leg-walk-1 {
+  0% { transform: rotate(-8deg); }
+  100% { transform: rotate(10deg); }
+}
+
+@keyframes svg-leg-walk-2 {
+  0% { transform: rotate(10deg); }
+  100% { transform: rotate(-8deg); }
+}
+
+.turtle.swimming {
+  animation: turtle-swim 2.4s ease-in-out infinite alternate;
+}
+
+.turtle.swimming .leg-front-near,
+.turtle.swimming .leg-front-far {
+  animation: svg-leg-swim-front 0.75s ease-in-out infinite alternate;
+  transform-origin: 75px 85px;
+}
+
+.turtle.swimming .leg-back-near,
+.turtle.swimming .leg-back-far {
+  animation: svg-leg-swim-back 0.75s ease-in-out infinite alternate;
+  transform-origin: 125px 85px;
+}
+
+@keyframes svg-leg-swim-front {
+  0% { transform: rotate(-14deg) translateY(-2px); }
+  100% { transform: rotate(18deg) translateY(2px); }
+}
+
+@keyframes svg-leg-swim-back {
+  0% { transform: rotate(16deg); }
+  100% { transform: rotate(-16deg); }
+}
+
+.turtle .turtle-tail {
+  animation: svg-tail-wag 2.6s ease-in-out infinite alternate;
+  transform-origin: 150px 75px;
+}
+
+@keyframes svg-tail-wag {
+  0% { transform: rotate(-8deg); }
+  100% { transform: rotate(9deg); }
+}
+
+.turtle .head-group {
+  animation: svg-head-nod 3.4s ease-in-out infinite alternate;
+  transform-origin: 45px 70px;
+}
+
+@keyframes svg-head-nod {
+  0% { transform: translateY(0) rotate(0deg); }
+  100% { transform: translateY(-1.5px) rotate(-1deg); }
+}
+
+.turtle.swimming {
+  animation: turtle-swim 2.4s ease-in-out infinite alternate;
+}
+
+.turtle.swimming .leg.a {
+  animation: leg-swim-one 0.75s ease-in-out infinite alternate;
+}
+
+.turtle.swimming .leg.b {
+  animation: leg-swim-two 0.75s ease-in-out infinite alternate;
+}
+
+.turtle.swimming:after {
+  content: "";
+  position: absolute;
+  bottom: -7px;
+  left: 10px;
+  right: 10px;
+  height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(130, 245, 245, 0.5) 0%, rgba(130, 245, 245, 0.1) 60%, transparent 100%);
+  filter: blur(2px);
+  animation: swim-ripple 1.5s ease-in-out infinite;
+}
+
+@keyframes turtle-swim {
+  0% {
+    transform: translateY(0) rotate(-2deg);
+  }
+
+  50% {
+    transform: translateY(-5px) rotate(3deg);
+  }
+
+  100% {
+    transform: translateY(2px) rotate(-1deg);
+  }
+}
+
+@keyframes leg-swim-one {
+  0% {
+    transform: rotate(-18deg);
+  }
+
+  100% {
+    transform: rotate(28deg);
+  }
+}
+
+@keyframes leg-swim-two {
+  0% {
+    transform: rotate(24deg);
+  }
+
+  100% {
+    transform: rotate(-24deg);
+  }
+}
+
+@keyframes swim-ripple {
+
+  0%,
+  100% {
+    transform: scale(0.85);
+    opacity: 0.35;
+  }
+
+  50% {
+    transform: scale(1.35);
+    opacity: 0.85;
+  }
+}
+
+.turtle.enter-water {
+  animation: enter-water-anim 0.65s var(--ease-bounce) !important;
+}
+
+.turtle.exit-water {
+  animation: exit-water-anim 0.65s var(--ease-bounce) !important;
+}
+
+@keyframes enter-water-anim {
+  0% {
+    transform: scale(1) translateY(0);
+  }
+
+  40% {
+    transform: scale(1.25) translateY(-16px) rotate(8deg);
+    filter: drop-shadow(0 0 20px #63f3ea);
+  }
+
+  70% {
+    transform: scale(0.9) translateY(4px) rotate(-4deg);
+  }
+
+  100% {
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes exit-water-anim {
+  0% {
+    transform: scale(1) translateY(0) rotate(-6deg);
+  }
+
+  35% {
+    transform: scale(1.24) translateY(-18px) rotate(12deg);
+    filter: drop-shadow(0 0 18px #ffe090);
+  }
+
+  65% {
+    transform: scale(0.95) translateY(2px) rotate(-2deg);
+  }
+
+  100% {
+    transform: scale(1) translateY(0);
+  }
+}
+
+.turtle.jump {
+  animation: turtle-jump 0.68s var(--ease-bounce) !important;
+}
+
+@keyframes turtle-jump {
+  0% {
+    transform: scale(1) translateY(0);
+  }
+
+  40% {
+    transform: scale(1.2) translateY(-24px) rotate(-5deg);
+    filter: drop-shadow(0 12px 20px var(--glow));
+  }
+
+  75% {
+    transform: scale(0.92, 1.08) translateY(2px);
+  }
+
+  100% {
+    transform: scale(1) translateY(0);
+  }
+}
+
+.turtle .nameplate {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 3px 8px;
+  background: rgba(22, 26, 52, 0.85);
+  border: 1px solid rgba(255, 240, 180, 0.35);
+  color: #fff5d8;
+  font-size: 8.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  border-radius: 5px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  transition: all 0.2s var(--ease-smooth);
+  pointer-events: none;
+}
+
+.turtle:hover .nameplate {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-2px);
+}
+
+.turtle .wearable {
+  position: absolute;
+  z-index: 8;
+  top: -11px;
+  left: 4px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  font-size: 22px;
+  line-height: 1;
+  filter: drop-shadow(0 3px 4px rgba(8, 12, 28, 0.6));
+  pointer-events: none;
+}
+
+.turtle.turtle-pumpkin .wearable {
+  top: -9px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  font-size: 18px;
+}
+
+/* ==========================================================================
+   Widget View / Taskbar Mode (任务栏紧凑槽位与量子潜水跃迁)
+   ========================================================================== */
+.widget-view {
+  display: none;
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  background: linear-gradient(90deg, rgba(14, 19, 42, 0.96), rgba(24, 30, 58, 0.98), rgba(14, 19, 42, 0.96));
+  border-top: 1px solid rgba(255, 240, 180, 0.28);
+  border-bottom: 1px solid rgba(255, 240, 180, 0.2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.widget-decor-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.widget-water {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(90deg, rgba(58, 125, 158, 0.28) 0 32px, rgba(44, 98, 128, 0.3) 32px 64px);
+  animation: widget-water-flow 9s linear infinite;
+  opacity: 0.8;
+}
+
+@keyframes widget-water-flow {
+  to {
+    background-position: 128px 0;
+  }
+}
+
+.widget-flora {
+  position: absolute;
+  font-size: 13px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+  animation: float-flora 3.2s ease-in-out infinite alternate;
+}
+
+.widget-flora.f1 {
+  left: 18%;
+  bottom: 2px;
+}
+
+.widget-flora.f2 {
+  left: 46%;
+  bottom: 3px;
+  animation-delay: -1.2s;
+}
+
+.widget-flora.f3 {
+  right: 26%;
+  bottom: 2px;
+  animation-delay: -2.4s;
+}
+
+@keyframes float-flora {
+  from {
+    transform: translateY(0) rotate(-3deg);
+  }
+
+  to {
+    transform: translateY(-3px) rotate(4deg);
+  }
+}
+
+.widget-handle {
+  z-index: 2;
+  color: rgba(255, 240, 180, 0.65);
+  letter-spacing: -3px;
+  font-size: 15px;
+  cursor: move;
+  user-select: none;
+}
+
+.widget-title {
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 120px;
+}
+
+.widget-title-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.widget-badge {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 800;
+  color: #10212b;
+  background: linear-gradient(90deg, #74ecc0, #38e0a4);
+  box-shadow: 0 0 8px rgba(116, 236, 192, 0.7);
+  animation: pulse 1.8s infinite;
+}
+
+.widget-title b {
+  font-size: 12.5px;
+  color: #fff6de;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.widget-title small {
+  margin-top: 1px;
+  color: #b4bfdf;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.widget-turtles {
+  position: relative;
+  z-index: 5;
+  flex: 1;
+  height: 100%;
+  pointer-events: none;
+}
+
+.widget-turtles .turtle {
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  transform-origin: center center !important;
+  cursor: pointer;
+  pointer-events: auto !important;
+  transition: transform 0.18s var(--ease-smooth);
+}
+
+.widget-turtles .turtle.turtle-papa {
+  width: 52px !important;
+  height: 34px !important;
+}
+
+.widget-turtles .turtle.turtle-pumpkin {
+  width: 40px !important;
+  height: 26px !important;
+}
+
+.widget-turtles .turtle-svg {
+  filter: drop-shadow(0 0 1.2px rgba(255, 255, 255, 0.85)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6)) !important;
+}
+
+.widget-turtles .turtle .wearable {
+  top: -8px !important;
+  left: 2px !important;
+  width: 15px !important;
+  height: 15px !important;
+  font-size: 13px !important;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.7)) !important;
+}
+
+.widget-turtles .turtle.turtle-pumpkin .wearable {
+  top: -7px !important;
+  left: 1px !important;
+  width: 13px !important;
+  height: 13px !important;
+  font-size: 11px !important;
+}
+
+.widget-turtles .turtle:hover {
+  transform: translateY(-50%) scale(1.15) !important;
+}
+
+.widget-turtles .turtle.jump {
+  animation: widget-turtle-jump 0.65s var(--ease-bounce) !important;
+}
+
+@keyframes widget-turtle-jump {
+  0% {
+    transform: translateY(-50%);
+  }
+  38% {
+    transform: translateY(-82%) rotate(-5deg);
+    filter: drop-shadow(0 0 10px var(--glow));
+  }
+  70% {
+    transform: translateY(-46%);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+/* 量子潜水与水面跃迁动画 */
+.widget-turtles .turtle.diving {
+  animation: widget-turtle-dive 0.75s var(--ease-smooth) forwards !important;
+}
+
+@keyframes widget-turtle-dive {
+  0% {
+    transform: translateY(-50%) scale(0.55);
+    opacity: 1;
+    filter: drop-shadow(0 0 6px #74ecc0);
+  }
+  45% {
+    transform: translateY(-20%) scale(0.65) rotate(16deg);
+    opacity: 0.85;
+  }
+  100% {
+    transform: translateY(32%) scale(0.12) rotate(42deg);
+    opacity: 0;
+    filter: blur(4px);
+  }
+}
+
+.widget-turtles .turtle.surfacing {
+  animation: widget-turtle-surface 0.8s var(--ease-bounce) forwards !important;
+}
+
+@keyframes widget-turtle-surface {
+  0% {
+    transform: translateY(32%) scale(0.12) rotate(-32deg);
+    opacity: 0;
+    filter: drop-shadow(0 0 14px #6ee6d2);
+  }
+  60% {
+    transform: translateY(-72%) scale(0.68) rotate(8deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-50%) scale(0.55) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.widget-portal-ripple {
+  position: absolute;
+  top: 55%;
+  width: 32px;
+  height: 14px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1.5px solid rgba(134, 228, 207, 0.9);
+  background: radial-gradient(ellipse, rgba(134, 228, 207, 0.5) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 4;
+  animation: portal-ripple-anim 0.85s ease-out forwards;
+}
+
+@keyframes portal-ripple-anim {
+  0% {
+    transform: translate(-50%, -50%) scale(0.3);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.2);
+    opacity: 0;
+  }
+}
+
+.widget-turtles .turtle .aura {
+  display: none;
+}
+
+.widget-turtles .turtle .nameplate,
+.widget-view .nameplate {
+  display: none !important;
+}
+
+.widget-pet-heart {
+  position: absolute;
+  top: 48%;
+  transform: translate(-50%, -50%);
+  font-size: 13px;
+  font-weight: 800;
+  color: #ff9fb8;
+  text-shadow: 0 0 8px rgba(255, 159, 184, 0.8), 0 2px 4px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+  animation: widget-heart-float 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.widget-pet-heart i {
+  font-style: normal;
+  font-size: 9.5px;
+  font-family: var(--mono);
+  color: #ffd88b;
+  text-shadow: 0 0 6px rgba(254, 216, 139, 0.8);
+}
+
+.widget-pet-heart span {
+  font-size: 9px;
+  font-family: var(--mono);
+  color: #86e4cf;
+  text-shadow: 0 0 5px rgba(134, 228, 207, 0.7);
+}
+
+@keyframes widget-heart-float {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 4px) scale(0.6);
+  }
+  25% {
+    opacity: 1;
+    transform: translate(-50%, -10px) scale(1.15);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -24px) scale(0.9);
+  }
+}
+
+.widget-actions {
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.widget-btn {
+  padding: 4px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.16);
+  color: #f7f2de;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.widget-btn:hover {
+  background: rgba(248, 203, 115, 0.38);
+  border-color: rgba(248, 203, 115, 0.65);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.widget-btn:active {
+  transform: translateY(0);
+}
+
+.widget-stats {
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--mono);
+  color: #f7d498;
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.widget-stats .keys-tag {
+  padding: 3px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffebb8;
+}
+
+.widget-stats span+span {
+  color: #ade4d8;
+}
+
+.expand-btn {
+  position: relative;
+  z-index: 2;
+  padding: 5px 12px;
+  background: linear-gradient(90deg, rgba(248, 203, 115, 0.38), rgba(240, 165, 180, 0.38));
+  border: 1px solid rgba(248, 203, 115, 0.55);
+  border-radius: 8px;
+  color: #fff7dd;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.expand-btn:hover {
+  background: linear-gradient(90deg, rgba(248, 203, 115, 0.58), rgba(240, 165, 180, 0.58));
+  box-shadow: 0 0 14px rgba(248, 203, 115, 0.5);
+  transform: scale(1.04);
+}
+
+body.widget-body,
+.app-shell.widget-mode {
+  height: 100vh !important;
+  min-height: 100vh !important;
+  overflow: hidden !important;
+  background: transparent !important;
+}
+
+body.widget-body .sanctuary,
+.app-shell.widget-mode .sanctuary,
+body.widget-body .app-splash,
+.app-shell.widget-mode .app-splash {
+  display: none !important;
+}
+
+.app-shell.widget-mode .widget-view {
+  display: flex !important;
+}
+
+/* 左翼伴侣挂件（左侧槽位）：两端对齐，完全填满并舒展于左侧水道 */
+.widget-view.wing-left {
+  width: 100% !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  padding: 0 16px !important;
+}
+
+.widget-view.wing-left #widgetTurtles {
+  flex: 1 !important;
+  min-width: 60px !important;
+  height: 100% !important;
+  position: relative !important;
+}
+
+.widget-view.wing-left #widgetActionsBlock,
+.widget-view.wing-left #expandWidget {
+  display: none !important;
+}
+
+.widget-view.wing-left #widgetTitleBlock,
+.widget-view.wing-left #widgetStatsBlock,
+.widget-view.wing-left #widgetHandle {
+  display: flex !important;
+}
+
+/* 右翼主挂件（右侧槽位）：两端舒展，完全填满右侧水道 */
+.widget-view.wing-right {
+  width: 100% !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  padding: 0 12px !important;
+}
+
+.widget-view.wing-right #widgetTurtles {
+  flex: 1 !important;
+  min-width: 40px !important;
+  height: 100% !important;
+  position: relative !important;
+}
+
+.widget-view.wing-right #widgetTitleBlock,
+.widget-view.wing-right #widgetStatsBlock,
+.widget-view.wing-right #widgetHandle {
+  display: none !important;
+}
+
+.widget-view.wing-right #widgetActionsBlock,
+.widget-view.wing-right #expandWidget {
+  display: flex !important;
+}
+
+/* 传统居左模式（统一槽位）：自适应展示各模块 */
+.widget-view.wing-unified {
+  width: 100% !important;
+  justify-content: space-between !important;
+  gap: 10px;
+}
+
+.widget-view.wing-unified #widgetTurtles {
+  flex: 1;
+  min-width: 60px;
+  height: 100%;
+  position: relative;
+}
+
+.widget-view.wing-unified #widgetTitleBlock,
+.widget-view.wing-unified #widgetStatsBlock,
+.widget-view.wing-unified #widgetActionsBlock,
+.widget-view.wing-unified #widgetHandle,
+.widget-view.wing-unified #expandWidget {
+  display: flex;
+}
+
+/* 任务栏模式下弹窗悬浮在任务栏上方 (Flyout Modal) */
+.app-shell.widget-mode.widget-modal-open {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+}
+
+.app-shell.widget-mode.widget-modal-open .widget-view {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+}
+
+.app-shell.widget-mode.widget-modal-open .overlay {
+  display: flex !important;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 12px 14px 48px;
+  background: rgba(8, 11, 28, 0.45);
+  backdrop-filter: blur(8px);
+}
+
+.app-shell.widget-mode.widget-modal-open .modal {
+  width: min(530px, calc(100vw - 16px));
+  max-height: calc(100vh - 58px);
+  margin-bottom: 2px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.8), 0 0 35px rgba(248, 203, 115, 0.25);
+  animation: modal-flyout-up 0.28s var(--ease-bounce);
+}
+
+@keyframes modal-flyout-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 响应式断点：空间收缩时优雅隐藏次要信息，避免挤压溢出或截断 */
+@media (max-width: 780px) {
+  .widget-view.wing-unified #widgetStatsBlock {
+    display: none !important;
+  }
+}
+
+@media (max-width: 620px) {
+  .widget-view.wing-unified #widgetTitleBlock,
+  .widget-title {
+    display: none !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .widget-view.wing-unified #widgetActionsBlock,
+  .widget-actions {
+    display: none !important;
+  }
+}
+
+@media (max-width: 280px) {
+  .widget-view.wing-unified #widgetHandle,
+  .widget-handle,
+  .widget-stats {
+    display: none !important;
+  }
+}
+

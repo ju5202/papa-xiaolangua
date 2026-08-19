@@ -1,0 +1,25 @@
+0 verbose cli C:\nvm4w\nodejs\node.exe C:\nvm4w\nodejs\node_modules\npm\bin\npm-cli.js
+1 info using npm@10.8.2
+2 info using node@v20.20.2
+3 silly config load:file:D:\tool\nvm\v20.20.2\node_modules\npm\npmrc
+4 silly config load:file:C:\Users\16948\Documents\ChatGPT\帕帕-小南瓜\.npmrc
+5 silly config load:file:C:\Users\16948\.npmrc
+6 silly config load:file:C:\nvm4w\nodejs\etc\npmrc
+7 verbose title npm prefix
+8 verbose argv "prefix" "--workspace"
+9 verbose logfile logs-max:10 dir:C:\Users\16948\Documents\ChatGPT\帕帕-小南瓜\.npm-cache\_logs\2026-08-11T11_51_49_491Z-
+10 verbose logfile C:\Users\16948\Documents\ChatGPT\帕帕-小南瓜\.npm-cache\_logs\2026-08-11T11_51_49_491Z-debug-0.log
+11 silly logfile start cleaning logs, removing 1 files
+12 verbose stack Error: This command does not support workspaces.
+12 verbose stack     at #exec (D:\tool\nvm\v20.20.2\node_modules\npm\lib\npm.js:243:29)
+12 verbose stack     at Npm.exec (D:\tool\nvm\v20.20.2\node_modules\npm\lib\npm.js:207:25)
+12 verbose stack     at module.exports (D:\tool\nvm\v20.20.2\node_modules\npm\lib\cli\entry.js:65:29)
+13 error code ENOWORKSPACES
+14 error This command does not support workspaces.
+15 verbose cwd C:\Users\16948\Documents\ChatGPT\帕帕-小南瓜
+16 verbose os Windows_NT 10.0.26200
+17 verbose node v20.20.2
+18 verbose npm  v10.8.2
+19 verbose exit 1
+20 verbose code 1
+21 error A complete log of this run can be found in: C:\Users\16948\Documents\ChatGPT\帕帕-小南瓜\.npm-cache\_logs\2026-08-11T11_51_49_491Z-debug-0.log

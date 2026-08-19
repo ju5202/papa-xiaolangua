@@ -1,0 +1,475 @@
+/* ==========================================================================
+   Header Topbar & Navigation Controls
+   ========================================================================== */
+.topbar {
+  height: 94px;
+  padding: 22px 32px 0;
+  position: relative;
+  z-index: 31;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  -webkit-app-region: drag;
+}
+
+.brand,
+.top-actions,
+.top-actions button,
+.bottom-nav,
+.sidebar button {
+  -webkit-app-region: no-drag;
+}
+
+.brand {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.brand-mark {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  color: #fed88b;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04));
+  border: 1px solid rgba(255, 240, 180, 0.35);
+  border-radius: 12px;
+  font-size: 22px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+  transform: rotate(-12deg);
+  transition: transform 0.3s var(--ease-bounce);
+}
+
+.brand-mark:hover {
+  transform: rotate(0deg) scale(1.08);
+}
+
+.brand b {
+  display: block;
+  letter-spacing: 0.12em;
+  font-size: 17px;
+  font-weight: 700;
+  background: linear-gradient(90deg, #ffffff, #ffeed0);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.brand small {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--mono);
+  color: #c2c9e8;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+}
+
+.season-pill {
+  align-self: center;
+  margin-top: -10px;
+  padding: 8px 18px;
+  color: #f0f3fc;
+  border-radius: 99px;
+  background: linear-gradient(135deg, rgba(17, 23, 56, 0.75), rgba(28, 35, 75, 0.55));
+  border: 1px solid var(--line-strong);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 16px rgba(5, 8, 22, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  display: inline-flex;
+  align-items: center;
+}
+
+.season-pill i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: #f7b275;
+  box-shadow: 0 0 10px #f7b275, 0 0 4px #ffdaaa;
+  animation: pulse 2.4s ease-in-out infinite;
+}
+
+.season-pill span {
+  color: #a4b0d8;
+  padding-left: 12px;
+}
+
+.season-pill strong {
+  font-family: var(--mono);
+  font-weight: 600;
+  padding-left: 5px;
+  color: #ffd88b;
+}
+
+.top-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.icon-btn,
+.window-mode {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--line);
+  height: 36px;
+  border-radius: 11px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+}
+
+.icon-btn {
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ebe4ff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.icon-btn:hover,
+.window-mode:hover {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.08));
+  border-color: rgba(255, 255, 255, 0.35);
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
+}
+
+.icon-btn:active,
+.window-mode:active {
+  transform: translateY(0);
+}
+
+.icon-btn.active {
+  color: #fff2cc;
+  background: linear-gradient(135deg, rgba(248, 203, 115, 0.35), rgba(248, 203, 115, 0.1));
+  border-color: rgba(248, 203, 115, 0.6);
+  box-shadow: 0 0 12px rgba(248, 203, 115, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+}
+
+.window-mode {
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
+}
+
+.window-mode span {
+  margin-right: 6px;
+  color: var(--pink);
+  font-size: 16px;
+  filter: drop-shadow(0 0 6px rgba(255, 159, 184, 0.6));
+}
+
+.window-ctrl-group {
+  display: flex;
+  gap: 4px;
+  margin-left: 8px;
+  -webkit-app-region: no-drag;
+}
+
+.win-ctrl {
+  width: 34px;
+  padding: 0;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+.win-close:hover {
+  background: linear-gradient(135deg, #ff4d64, #e6203a) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+  box-shadow: 0 0 12px rgba(255, 77, 100, 0.6) !important;
+}
+
+/* ==========================================================================
+   Sidebars & Pet Cards (侧边栏与小乌龟卡片材质)
+   ========================================================================== */
+.sidebar {
+  position: absolute;
+  z-index: 20;
+  top: 96px;
+  bottom: 68px;
+  width: 268px;
+  padding: 0 16px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+.sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 4px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(248, 203, 115, 0.4);
+}
+
+.left-sidebar {
+  left: 0;
+  padding-left: 20px;
+  padding-right: 12px;
+  padding-bottom: 24px;
+}
+
+.right-sidebar {
+  right: 0;
+  padding-left: 12px;
+  padding-right: 20px;
+  padding-bottom: 24px;
+}
+
+/* 世界探索模式切换卡片 (置于侧边栏，不遮挡中央背景与天空) */
+.world-switch-card {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  background: rgba(15, 20, 48, 0.65);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 6px;
+  margin-bottom: 14px;
+  backdrop-filter: blur(10px);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1), 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+.world-switch-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.22s var(--ease-bounce);
+  text-align: left;
+}
+
+.world-switch-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f1f5f9;
+  transform: translateY(-1px);
+}
+
+.world-switch-btn.active {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(99, 102, 241, 0.25));
+  border-color: rgba(56, 189, 248, 0.5);
+  color: #ffffff;
+  box-shadow: 0 2px 10px rgba(56, 189, 248, 0.25);
+}
+
+.world-switch-btn#navAbyssBtn.active {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(168, 85, 247, 0.3));
+  border-color: rgba(239, 68, 68, 0.6);
+  color: #fecaca;
+  box-shadow: 0 2px 12px rgba(239, 68, 68, 0.35);
+}
+
+.switch-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.switch-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.switch-info b {
+  font-size: 12px;
+  font-weight: 700;
+  color: inherit;
+}
+
+.switch-info small {
+  font-size: 9.5px;
+  opacity: 0.75;
+}
+
+.section-caption {
+  color: #c5cced;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.pet-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 13px 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02));
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  transition: all 0.25s var(--ease-smooth);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.pet-card:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.05));
+  transform: translateX(3px) scale(1.01);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.25);
+}
+
+.pet-card.selected {
+  border-color: rgba(255, 240, 180, 0.45);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.06));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32), inset 0 1px 2px rgba(255, 255, 255, 0.3);
+  transform: translateX(4px);
+}
+
+.pet-card.selected:before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--pet-color, var(--gold));
+  box-shadow: 0 0 12px var(--pet-color, var(--gold));
+}
+
+.mini-turtle {
+  position: relative;
+  flex: 0 0 48px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 3px 6px rgba(4, 8, 22, 0.45));
+}
+
+.mini-turtle .turtle-svg {
+  width: 48px;
+  height: 31px;
+  display: block;
+}
+
+.mini-turtle.mini-papa .turtle-svg {
+  width: 48px;
+  height: 31px;
+}
+
+.mini-turtle.mini-pumpkin .turtle-svg {
+  width: 38px;
+  height: 25px;
+}
+
+.pet-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.pet-name {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  line-height: 1.1;
+}
+
+.pet-name b {
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.pet-name span {
+  color: #f7d389;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.pet-info small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #bcc3dc;
+  margin: 4px 0 6px;
+  font-size: 12px;
+}
+
+.xp-track {
+  height: 6px;
+  overflow: hidden;
+  background: rgba(8, 11, 28, 0.45);
+  border-radius: 99px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.xp-track i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--pet-color, var(--mint)), #fed988);
+  box-shadow: 0 0 8px var(--pet-color, var(--gold));
+  transition: width 0.4s var(--ease-smooth);
+}
+
+.quote-card {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: 16px;
+  padding: 16px 16px 14px;
+  background: linear-gradient(135deg, rgba(19, 25, 56, 0.65), rgba(28, 36, 75, 0.45));
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 6px 20px rgba(4, 7, 20, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+}
+
+.quote-moon {
+  position: absolute;
+  right: 14px;
+  top: 10px;
+  color: #e5bf85;
+  font-size: 18px;
+  filter: drop-shadow(0 0 6px rgba(229, 191, 133, 0.5));
+}
+
+.quote-card p {
+  margin: 0 18px 8px 0;
+  color: #ebe7f5;
+  font-size: 13.5px;
+  line-height: 1.7;
+}
+
+.quote-card small {
+  color: #b0b7d8;
+  font-size: 11.5px;
+  font-family: var(--mono);
+}
+

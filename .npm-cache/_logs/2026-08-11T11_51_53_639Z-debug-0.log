@@ -1,0 +1,20 @@
+0 verbose cli C:\nvm4w\nodejs\node.exe C:\nvm4w\nodejs\node_modules\npm\bin\npm-cli.js
+1 info using npm@10.8.2
+2 info using node@v20.20.2
+3 silly config load:file:D:\tool\nvm\v20.20.2\node_modules\npm\npmrc
+4 silly config load:file:C:\Users\16948\Documents\ChatGPT\帕帕-小南瓜\.npmrc
+5 silly config load:file:C:\Users\16948\.npmrc
+6 silly config load:file:C:\nvm4w\nodejs\etc\npmrc
+7 verbose title npm list
+8 verbose argv "list" "--all" "--include" "prod" "--include" "optional" "--omit" "dev" "--json" "--long" "--loglevel" "silent" "--loglevel" "error"
+9 verbose logfile logs-max:10 dir:C:\Users\16948\Documents\ChatGPT\帕帕-小南瓜\.npm-cache\_logs\2026-08-11T11_51_53_639Z-
+10 verbose logfile C:\Users\16948\Documents\ChatGPT\帕帕-小南瓜\.npm-cache\_logs\2026-08-11T11_51_53_639Z-debug-0.log
+11 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+12 silly logfile start cleaning logs, removing 1 files
+13 silly logfile done cleaning log files
+14 verbose cwd C:\Users\16948\Documents\ChatGPT\帕帕-小南瓜
+15 verbose os Windows_NT 10.0.26200
+16 verbose node v20.20.2
+17 verbose npm  v10.8.2
+18 verbose exit 0
+19 info ok
