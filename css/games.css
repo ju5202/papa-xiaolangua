@@ -1,0 +1,843 @@
+/* ==========================================================================
+   帕帕 · 小南瓜 | 游艺棋阁 — 东方雅韵对弈与休闲小游戏样式 (Games Arcade Styles)
+   包含：五子棋、斗兽棋、中国象棋、飞行棋四大经典棋类与 3D 动效
+   ========================================================================== */
+
+/* 主舞台与茶阁意境背景 */
+.games-stage {
+  position: absolute;
+  top: 48px;
+  left: 260px;
+  right: 260px;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(circle at 50% 25%, #1e2640 0%, #0d1222 75%, #070a14 100%);
+  overflow: hidden;
+  z-index: 10;
+}
+
+.games-backdrop {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.games-bamboo-bg {
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(ellipse at 80% 90%, rgba(52, 211, 153, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse at 20% 10%, rgba(245, 158, 11, 0.08) 0%, transparent 50%);
+  opacity: 0.8;
+}
+
+.games-floating-lanterns {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(2px 2px at 20px 30px, #fde047, rgba(0,0,0,0)),
+                    radial-gradient(2px 2px at 140px 70px, #6ee7b7, rgba(0,0,0,0)),
+                    radial-gradient(1.5px 1.5px at 280px 180px, #fb923c, rgba(0,0,0,0));
+  background-repeat: repeat;
+  background-size: 300px 300px;
+  opacity: 0.4;
+  animation: lantern-float 25s linear infinite;
+}
+
+@keyframes lantern-float {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-300px); }
+}
+
+/* ================= 视图 1：棋阁大厅 (Lobby View) ================= */
+.games-view-lobby {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 40px;
+  overflow-y: auto;
+  position: relative;
+  z-index: 2;
+}
+
+.games-lobby-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.games-lobby-tag {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 20px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  margin-bottom: 8px;
+}
+
+.games-lobby-header h2 {
+  font-size: 26px;
+  font-weight: 900;
+  color: #fff;
+  margin: 4px 0 6px;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 12px rgba(245, 158, 11, 0.3);
+}
+
+.games-lobby-header p {
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+/* 游戏卡片网格 */
+.games-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  max-width: 780px;
+  width: 100%;
+}
+
+.game-select-card {
+  position: relative;
+  background: linear-gradient(145deg, rgba(30, 41, 69, 0.85), rgba(18, 25, 45, 0.95));
+  border: 1.5px solid rgba(130, 160, 220, 0.22);
+  border-radius: 18px;
+  padding: 20px;
+  cursor: pointer;
+  display: flex;
+  gap: 16px;
+  transition: transform 0.25s var(--ease-bounce), border-color 0.25s ease, box-shadow 0.25s ease;
+  overflow: hidden;
+}
+
+.game-select-card:hover {
+  transform: translateY(-5px);
+  border-color: #f59e0b;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(245, 158, 11, 0.25);
+}
+
+.game-card-icon-box {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  flex-shrink: 0;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+.game-select-card[data-game="gomoku"] .game-card-icon-box {
+  background: radial-gradient(circle, #38bdf822, #0284c711);
+  border-color: #38bdf855;
+}
+.game-select-card[data-game="animals"] .game-card-icon-box {
+  background: radial-gradient(circle, #10b98122, #05966911);
+  border-color: #10b98155;
+}
+.game-select-card[data-game="xiangqi"] .game-card-icon-box {
+  background: radial-gradient(circle, #ef444422, #b91c1c11);
+  border-color: #ef444455;
+}
+.game-select-card[data-game="ludo"] .game-card-icon-box {
+  background: radial-gradient(circle, #f59e0b22, #d9770611);
+  border-color: #f59e0b55;
+}
+
+.game-card-info {
+  flex: 1;
+}
+
+.game-card-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.game-card-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.game-card-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.game-card-desc {
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.4;
+  margin-bottom: 10px;
+}
+
+.game-card-stats {
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.game-card-stats b {
+  color: #e2e8f0;
+}
+
+/* ================= 视图 2：游戏对弈区 (Play View) ================= */
+.games-view-play {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 18px 16px;
+  position: relative;
+  z-index: 2;
+  overflow: hidden;
+}
+
+/* 顶部控制栏 */
+.game-play-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(20, 27, 48, 0.85);
+  border: 1px solid rgba(130, 160, 220, 0.2);
+  border-radius: 14px;
+  padding: 8px 16px;
+  margin-bottom: 10px;
+  backdrop-filter: blur(10px);
+}
+
+.game-top-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.game-back-lobby-btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.game-back-lobby-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.game-title-group h3 {
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.game-mode-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+}
+
+.game-top-center {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.game-turn-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 16px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.1));
+  border: 1.5px solid rgba(245, 158, 11, 0.5);
+  color: #fde047;
+  font-size: 13px;
+  font-weight: 800;
+  animation: turn-pulse 2s infinite ease-in-out;
+}
+
+@keyframes turn-pulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(245, 158, 11, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.5); }
+}
+
+.game-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.game-action-btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.game-action-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.game-action-btn.btn-danger:hover {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #fca5a5;
+}
+
+/* 主对战容器 */
+.game-arena-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* 玩家信息侧栏卡片 */
+.game-player-card {
+  width: 140px;
+  background: linear-gradient(160deg, rgba(26, 35, 60, 0.8), rgba(15, 20, 36, 0.9));
+  border: 1.5px solid rgba(130, 160, 220, 0.2);
+  border-radius: 16px;
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.game-player-card.active-turn {
+  border-color: #f59e0b;
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.4), 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.game-player-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.game-player-card.active-turn .game-player-avatar {
+  border-color: #f59e0b;
+}
+
+.game-player-name {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.game-player-role {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.game-player-piece-preview {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+/* ================= 1. 五子棋盘 (Gomoku Board) ================= */
+.gomoku-board-container {
+  width: 480px;
+  height: 480px;
+  background: #d4a373;
+  background-image: 
+    radial-gradient(circle, rgba(0,0,0,0.05) 1px, transparent 1px),
+    linear-gradient(to right, rgba(0,0,0,0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0,0,0,0.03) 1px, transparent 1px);
+  background-size: 100% 100%, 32px 32px, 32px 32px;
+  border: 8px solid #8d5b2c;
+  border-radius: 12px;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(0, 0, 0, 0.35);
+  display: grid;
+  grid-template-columns: repeat(15, 1fr);
+  grid-template-rows: repeat(15, 1fr);
+  padding: 12px;
+  position: relative;
+}
+
+.gomoku-cell {
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 交叉线绘制 */
+.gomoku-cell::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: #5c3a1d;
+  transform: translateY(-50%);
+}
+
+.gomoku-cell::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: #5c3a1d;
+  transform: translateX(-50%);
+}
+
+/* 星位黑点 */
+.gomoku-cell.star-point::before {
+  box-shadow: 0 0 0 3px #5c3a1d;
+  border-radius: 50%;
+}
+
+.gomoku-piece {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  z-index: 3;
+  animation: piece-drop 0.18s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes piece-drop {
+  0% { transform: scale(1.6); opacity: 0.5; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.gomoku-piece.black {
+  background: radial-gradient(circle at 35% 35%, #555, #111 75%);
+  box-shadow: 2px 3px 6px rgba(0, 0, 0, 0.65), inset -1px -1px 2px rgba(255,255,255,0.1);
+}
+
+.gomoku-piece.white {
+  background: radial-gradient(circle at 35% 35%, #fff, #dcdcdc 60%, #aaa 100%);
+  box-shadow: 2px 3px 6px rgba(0, 0, 0, 0.4), inset -1px -1px 2px rgba(0,0,0,0.15);
+}
+
+.gomoku-piece.last-move::after {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border-radius: 50%;
+  background: #ef4444;
+}
+
+/* ================= 2. 斗兽棋盘 (Animal Chess Board) ================= */
+.animals-board-container {
+  width: 420px;
+  height: 540px;
+  background: #2a3c24;
+  border: 8px solid #1c2718;
+  border-radius: 12px;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-template-rows: repeat(9, 1fr);
+  padding: 8px;
+  position: relative;
+  gap: 2px;
+}
+
+.animal-cell {
+  position: relative;
+  background: #3c5434;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  font-size: 18px;
+}
+
+.animal-cell.water {
+  background: #1e3a8a;
+  background-image: repeating-linear-gradient(45deg, rgba(56, 189, 248, 0.1), rgba(56, 189, 248, 0.1) 6px, transparent 6px, transparent 12px);
+  color: #60a5fa;
+}
+
+.animal-cell.trap {
+  background: #78350f;
+  border: 1px dashed #f59e0b;
+}
+
+.animal-cell.den {
+  background: #831843;
+  border: 1.5px solid #ec4899;
+}
+
+.animal-cell.selected {
+  background: #4ade80 !important;
+  box-shadow: inset 0 0 8px #15803d;
+}
+
+.animal-cell.valid-target {
+  box-shadow: inset 0 0 0 2.5px #facc15;
+  cursor: pointer;
+}
+
+.animal-piece {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  z-index: 2;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  position: relative;
+}
+
+.animal-piece.p1 {
+  background: radial-gradient(circle at 35% 35%, #38bdf8, #0284c7);
+  border: 2px solid #bae6fd;
+}
+
+.animal-piece.p2 {
+  background: radial-gradient(circle at 35% 35%, #f87171, #dc2626);
+  border: 2px solid #fecaca;
+}
+
+.animal-piece .rank-tag {
+  font-size: 9px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+  text-shadow: 0 1px 2px #000;
+}
+
+/* ================= 3. 中国象棋 (Xiangqi Board) ================= */
+.xiangqi-board-container {
+  width: 440px;
+  height: 490px;
+  background: #e9c49a;
+  border: 8px solid #7c4a1e;
+  border-radius: 12px;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  grid-template-rows: repeat(10, 1fr);
+  padding: 10px;
+  position: relative;
+}
+
+.xq-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.xq-cell::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 50%; height: 1px;
+  background: #5c3a1d;
+  transform: translateY(-50%);
+}
+.xq-cell::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0; left: 50%; width: 1px;
+  background: #5c3a1d;
+  transform: translateX(-50%);
+}
+
+/* 楚河汉界 */
+.xq-river-label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 45%;
+  height: 10%;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  color: #8c531b;
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 12px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.xq-piece {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 900;
+  z-index: 3;
+  box-shadow: 2px 3px 6px rgba(0,0,0,0.5), inset 0 0 4px rgba(0,0,0,0.2);
+  border: 2px solid #8c531b;
+  background: #fae8d2;
+  user-select: none;
+}
+
+.xq-piece.red {
+  color: #dc2626;
+  border-color: #b91c1c;
+}
+
+.xq-piece.black {
+  color: #1e293b;
+  border-color: #0f172a;
+}
+
+.xq-cell.selected .xq-piece {
+  transform: scale(1.15);
+  box-shadow: 0 0 12px #f59e0b;
+}
+
+.xq-cell.valid-move::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #22c55e;
+  z-index: 4;
+}
+
+/* ================= 4. 飞行棋 (Aeroplane Chess / Ludo) ================= */
+.ludo-board-container {
+  width: 480px;
+  height: 480px;
+  background: #1e293b;
+  border: 8px solid #0f172a;
+  border-radius: 14px;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
+  display: grid;
+  grid-template-columns: repeat(15, 1fr);
+  grid-template-rows: repeat(15, 1fr);
+  padding: 8px;
+  position: relative;
+  gap: 1px;
+}
+
+.ludo-cell {
+  position: relative;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.ludo-cell.red { background: #ef444433; border: 1px solid #ef444488; color: #fca5a5; }
+.ludo-cell.yellow { background: #eab30833; border: 1px solid #eab30888; color: #fde047; }
+.ludo-cell.blue { background: #3b82f633; border: 1px solid #3b82f688; color: #93c5fd; }
+.ludo-cell.green { background: #22c55e33; border: 1px solid #22c55e88; color: #86efac; }
+.ludo-cell.center-goal { background: radial-gradient(circle, #f59e0b, #b45309); color: #fff; font-size: 16px; }
+
+.ludo-plane {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  z-index: 3;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  transition: transform 0.2s ease;
+}
+
+.ludo-plane:hover {
+  transform: scale(1.25);
+}
+
+.ludo-dice-controller {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.ludo-dice-box {
+  width: 58px;
+  height: 58px;
+  background: linear-gradient(135deg, #ffffff, #e2e8f0);
+  border: 2px solid #cbd5e1;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.ludo-dice-box:hover {
+  transform: scale(1.08);
+}
+
+.ludo-dice-box.rolling {
+  animation: dice-shake 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes dice-shake {
+  0% { transform: rotate(-15deg) scale(1.05); }
+  100% { transform: rotate(15deg) scale(0.95); }
+}
+
+/* 结算弹层 */
+.game-result-modal {
+  position: absolute;
+  inset: 0;
+  background: rgba(7, 10, 20, 0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(8px);
+  animation: fade-in 0.3s ease;
+}
+
+.game-result-card {
+  background: linear-gradient(155deg, #1e293b, #0f172a);
+  border: 2px solid #f59e0b;
+  border-radius: 20px;
+  padding: 30px 40px;
+  text-align: center;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(245, 158, 11, 0.3);
+  max-width: 380px;
+  width: 90%;
+}
+
+.game-result-icon {
+  font-size: 54px;
+  margin-bottom: 8px;
+}
+
+.game-result-card h2 {
+  font-size: 24px;
+  color: #fff;
+  margin: 0 0 6px;
+}
+
+.game-result-card p {
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 0 0 16px;
+}
+
+.game-result-rewards {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 10px;
+  border-radius: 10px;
+}
+
+.game-result-rewards span {
+  font-size: 13px;
+  font-weight: 800;
+  color: #fde047;
+}
+
+.game-result-btns {
+  display: flex;
+  gap: 12px;
+}
+
+.game-result-btns button {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.btn-restart {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #fff;
+}
+.btn-restart:hover {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  transform: translateY(-2px);
+}
+
+.btn-back-lobby {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+}
+.btn-back-lobby:hover {
+  background: rgba(255, 255, 255, 0.2);
+}

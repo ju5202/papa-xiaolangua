@@ -105,6 +105,13 @@
               <small>PVE 闯关</small>
             </div>
           </button>
+          <button class="world-switch-btn" id="navGamesBtn" data-world-mode="games" title="进入游艺棋阁休闲对弈">
+            <span class="switch-icon">🎮</span>
+            <div class="switch-info">
+              <b>游艺棋阁</b>
+              <small>休闲对弈</small>
+            </div>
+          </button>
         </div>
 
         <div class="section-caption">居住者</div>
@@ -430,6 +437,99 @@
         </div>
       </section>
 
+      <!-- 游艺棋阁 主舞台 -->
+      <section class="games-stage hidden" id="gamesStage" aria-label="游艺棋阁">
+        <div class="games-backdrop">
+          <div class="games-bamboo-bg"></div>
+          <div class="games-floating-lanterns"></div>
+        </div>
+
+        <!-- 视图 1：棋阁大厅 (Lobby View) -->
+        <div class="games-view-lobby" id="gamesLobbyView">
+          <div class="games-lobby-header">
+            <div class="games-lobby-tag">🎮 GAMES ARENA · 游艺棋阁</div>
+            <h2>经典弈棋 · 智趣对决</h2>
+            <p>选择一款喜爱的棋类游戏，既可挑战聪明机智的 AI，也能与远方共养伙伴在线博弈。</p>
+          </div>
+
+          <div class="games-cards-grid">
+            <!-- 1. 五子棋 -->
+            <div class="game-select-card" id="gameCardGomoku" data-game="gomoku">
+              <div class="game-card-icon-box">⚪</div>
+              <div class="game-card-info">
+                <div class="game-card-title-row">
+                  <span class="game-card-title">五子棋</span>
+                  <span class="game-card-badge">智弈天元</span>
+                </div>
+                <div class="game-card-desc">15×15 仿古实木棋盘，黑白落子，五子连线即成胜势。</div>
+                <div class="game-card-stats" id="gomokuStatText">胜: <b>0</b> / 负: <b>0</b></div>
+              </div>
+            </div>
+
+            <!-- 2. 斗兽棋 -->
+            <div class="game-select-card" id="gameCardAnimals" data-game="animals">
+              <div class="game-card-icon-box">🦁</div>
+              <div class="game-card-info">
+                <div class="game-card-title-row">
+                  <span class="game-card-title">斗兽棋</span>
+                  <span class="game-card-badge">丛林争霸</span>
+                </div>
+                <div class="game-card-desc">象狮虎豹狼狗猫鼠，鼠克大象，狮虎跳河，占领兽穴即胜。</div>
+                <div class="game-card-stats" id="animalsStatText">胜: <b>0</b> / 负: <b>0</b></div>
+              </div>
+            </div>
+
+            <!-- 3. 中国象棋 -->
+            <div class="game-select-card" id="gameCardXiangqi" data-game="xiangqi">
+              <div class="game-card-icon-box">🪓</div>
+              <div class="game-card-info">
+                <div class="game-card-title-row">
+                  <span class="game-card-title">中国象棋</span>
+                  <span class="game-card-badge">楚河汉界</span>
+                </div>
+                <div class="game-card-desc">马行日象飞田，炮翻山车行路，调兵遣将决胜九宫。</div>
+                <div class="game-card-stats" id="xiangqiStatText">胜: <b>0</b> / 负: <b>0</b></div>
+              </div>
+            </div>
+
+            <!-- 4. 飞行棋 -->
+            <div class="game-select-card" id="gameCardLudo" data-game="ludo">
+              <div class="game-card-icon-box">✈️</div>
+              <div class="game-card-info">
+                <div class="game-card-title-row">
+                  <span class="game-card-title">飞行棋</span>
+                  <span class="game-card-badge">星际航线</span>
+                </div>
+                <div class="game-card-desc">3D 掷骰起飞，同色跳跃飞跃，击落敌机，全员凯旋！</div>
+                <div class="game-card-stats" id="ludoStatText">胜: <b>0</b> / 负: <b>0</b></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 视图 2：游戏对战区 (Play View) -->
+        <div class="games-view-play hidden" id="gamesPlayView">
+          <div class="game-play-topbar">
+            <div class="game-top-left">
+              <button class="game-back-lobby-btn" id="gameBackLobbyBtn">‹ 返回棋阁大厅</button>
+              <div class="game-title-group">
+                <h3 id="gameCurrentTitle">五子棋</h3>
+                <span class="game-mode-pill" id="gameModePill">🤖 人机对弈</span>
+              </div>
+            </div>
+            <div class="game-top-center">
+              <div class="game-turn-banner" id="gameTurnBanner">✦ 你的回合 ✦</div>
+            </div>
+            <div class="game-top-actions">
+              <button class="game-action-btn" id="gameModeToggleBtn" title="切换人机对弈或双人联机">👥 切换模式</button>
+              <button class="game-action-btn btn-danger" id="gameSurrenderBtn">🏳️ 认输</button>
+            </div>
+          </div>
+
+          <div class="game-arena-content" id="gameArenaContent"></div>
+        </div>
+      </section>
+
       <aside class="sidebar right-sidebar">
         <div class="stat-head">
           <div><span class="section-caption">今日禅意</span><b id="zenPoints">2,480</b><small>ZEN POINTS</small></div>
@@ -567,6 +667,7 @@
   <script src="js/market.js"></script>
   <script src="js/abyss.js"></script>
   <script src="js/audio.js"></script>
+  <script src="js/games.js"></script>
   <script src="js/main.js"></script>
 </body>
 

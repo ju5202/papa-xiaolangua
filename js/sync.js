@@ -66,6 +66,15 @@
     if (!data) return;
     // 仅过滤来自本地自身的广播回环，正常接收远方伙伴的数据
     if (data.senderId && data.senderId === state.user.id) return;
+
+    // 棋阁对弈动作实时同步
+    if (data.type === 'game_action') {
+      if (typeof GamesArena !== 'undefined') {
+        GamesArena.handleRemoteAction(data.payload, data);
+      }
+      return;
+    }
+
     if (data.type === 'state') {
       const incoming = data.payload;
       if (!incoming) return;
@@ -241,6 +250,22 @@
       senderAvatar: state.user.avatar,
       timestamp: Date.now(),
       payload: state
+    };
+    broadcast?.postMessage(packet);
+    if (mqttClient && mqttClient.connected) {
+      const topic = `papa-pumpkin-sanctuary/channel/${state.channel}`;
+      mqttClient.publish(topic, JSON.stringify(packet), { qos: 0 });
+    }
+  }
+
+  function broadcastGameAction(actionPayload) {
+    const packet = {
+      type: 'game_action',
+      senderId: state.user.id,
+      senderName: state.user.name,
+      senderAvatar: state.user.avatar,
+      timestamp: Date.now(),
+      payload: actionPayload
     };
     broadcast?.postMessage(packet);
     if (mqttClient && mqttClient.connected) {

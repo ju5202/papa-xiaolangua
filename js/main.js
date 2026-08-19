@@ -1,30 +1,47 @@
 /* ==========================================================================
    帕帕 · 小南瓜 | 湖畔圣域 — 系统主入口与全局事件调度 (Main App Controller)
    ========================================================================== */
-  let currentWorldMode = 'garden'; // 'garden' | 'abyss'
+  let currentWorldMode = 'garden'; // 'garden' | 'abyss' | 'games'
 
   function switchWorldMode(mode) {
     currentWorldMode = mode;
+    const isGarden = mode === 'garden';
     const isAbyss = mode === 'abyss';
+    const isGames = mode === 'games';
 
-    if ($('#navGardenBtn')) $('#navGardenBtn').classList.toggle('active', !isAbyss);
+    if ($('#navGardenBtn')) $('#navGardenBtn').classList.toggle('active', isGarden);
     if ($('#navAbyssBtn')) $('#navAbyssBtn').classList.toggle('active', isAbyss);
+    if ($('#navGamesBtn')) $('#navGamesBtn').classList.toggle('active', isGames);
 
-    if ($('#gardenStage')) $('#gardenStage').classList.toggle('hidden', isAbyss);
+    if ($('#gardenStage')) $('#gardenStage').classList.toggle('hidden', !isGarden);
     if ($('#abyssStage')) $('#abyssStage').classList.toggle('hidden', !isAbyss);
+    if ($('#gamesStage')) $('#gamesStage').classList.toggle('hidden', !isGames);
 
-    // 全局地狱魔渊主题切换
+    // 全局主题切换
     document.body.classList.toggle('theme-abyss', isAbyss);
+    document.body.classList.toggle('theme-games', isGames);
     $('#appShell')?.classList.toggle('theme-abyss-mode', isAbyss);
+    $('#appShell')?.classList.toggle('theme-games-mode', isGames);
 
     const brandTitle = $('.brand b');
     const brandSub = $('.brand small');
     if (brandTitle && brandSub) {
-      brandTitle.textContent = isAbyss ? '地狱魔渊' : '湖畔圣域';
-      brandSub.textContent = isAbyss ? 'INFERNAL ABYSS' : 'PA PA & PUMPKIN';
+      if (isGames) {
+        brandTitle.textContent = '游艺棋阁';
+        brandSub.textContent = 'GAMES ARENA';
+      } else if (isAbyss) {
+        brandTitle.textContent = '地狱魔渊';
+        brandSub.textContent = 'INFERNAL ABYSS';
+      } else {
+        brandTitle.textContent = '湖畔圣域';
+        brandSub.textContent = 'PA PA & PUMPKIN';
+      }
     }
 
-    if (isAbyss) {
+    if (isGames) {
+      GamesArena.showLobby();
+      toast('🎮 步入游艺棋阁', '茶香袅袅，棋局初布！五子棋、斗兽棋、象棋、飞行棋恭候对弈。');
+    } else if (isAbyss) {
       AbyssEngine.updateLobbyDisplay();
       toast('☬ 踏入地狱魔渊', '天地异象，幽冥魔焰骤起！已继承庭院乌龟等级与属性。');
     } else {
@@ -45,8 +62,10 @@
   function bind() {
     if ($('#navGardenBtn')) $('#navGardenBtn').onclick = () => switchWorldMode('garden');
     if ($('#navAbyssBtn')) $('#navAbyssBtn').onclick = () => switchWorldMode('abyss');
+    if ($('#navGamesBtn')) $('#navGamesBtn').onclick = () => switchWorldMode('games');
     if ($('#marketBtn')) $('#marketBtn').onclick = () => MarketSystem.showModal();
     AbyssEngine.initUI();
+    GamesArena.initUI();
     if ($('#themeBtn')) $('#themeBtn').onclick = () => toggleTheme();
     if ($('#minWinBtn')) $('#minWinBtn').onclick = () => window.sanctuaryDesktop?.minimize();
     if ($('#maxWinBtn')) $('#maxWinBtn').onclick = () => window.sanctuaryDesktop?.maximize();
