@@ -1,7 +1,8 @@
 /* ==========================================================================
    帕帕 · 小南瓜 | 游艺棋阁 — 东方经典棋类对弈与休闲小游戏引擎 (Games Arena Engine)
-   包含：五子棋、斗兽棋、中国象棋、飞行棋四大经典棋类
-   支持：高智商 AI 对弈 (Smart AI) 与 共养者远程在线联机 (Multiplayer Online)
+   包含：五子棋、斗兽棋、中国象棋、正统标准飞行棋
+   高智商 AI 引擎：Minimax 极小化极大搜索 + Alpha-Beta 剪枝 + 棋型启发式权值矩阵
+   视觉盛典：全屏礼花粒子瀑布、胜利金杯光轮与结算动效
    ========================================================================== */
 
 const GamesArena = (() => {
@@ -9,9 +10,9 @@ const GamesArena = (() => {
   let currentGame = null; // 'gomoku' | 'animals' | 'xiangqi' | 'ludo'
   let gameMode = 'ai'; // 'ai' | 'pvp'
   let aiDifficulty = 'hard'; // 'easy' | 'medium' | 'hard'
-  let currentTurn = 'player'; // 'player' | 'opponent' (或 'red' | 'black', 'p1' | 'p2')
+  let myRole = 1; // 1 (先手/蓝/红/黑) | 2 (后手/红/黄/白)
+  let currentTurn = 1; // 1: P1, 2: P2
   let isGameOver = false;
-  let moveHistory = [];
 
   // 各小游戏独立状态
   let gomokuState = null;
@@ -19,16 +20,13 @@ const GamesArena = (() => {
   let xiangqiState = null;
   let ludoState = null;
 
-  // 战绩记录
-  let gameStats = {
-    gomoku: { wins: 0, losses: 0, draws: 0 },
-    animals: { wins: 0, losses: 0, draws: 0 },
-    xiangqi: { wins: 0, losses: 0, draws: 0 },
-    ludo: { wins: 0, losses: 0, draws: 0 }
-  };
+  // 临时配置选择
+  let pendingGameKey = 'gomoku';
+  let pendingMode = 'ai';
+  let pendingDiff = 'hard';
 
   // -------------------------------------------------------------------------
-  // 1. Web Audio 原生音效合成 (棋子落盘、木质清脆声、掷骰子、胜利礼花)
+  // 1. Web Audio 原生音效合成
   // -------------------------------------------------------------------------
   function playSound(type) {
     try {
@@ -38,7 +36,6 @@ const GamesArena = (() => {
       const now = ctx.currentTime;
 
       if (type === 'stone') {
-        // 五子棋/黑白玉石落子清脆高频敲击
         const osc = ctx.createOscillator();
         const g = ctx.createGain();
         osc.type = 'sine';
@@ -49,7 +46,6 @@ const GamesArena = (() => {
         osc.connect(g); g.connect(ctx.destination);
         osc.start(now); osc.stop(now + 0.07);
       } else if (type === 'wood') {
-        // 象棋/木质棋子沉稳啪嗒声
         const osc = ctx.createOscillator();
         const g = ctx.createGain();
         osc.type = 'triangle';
@@ -60,7 +56,6 @@ const GamesArena = (() => {
         osc.connect(g); g.connect(ctx.destination);
         osc.start(now); osc.stop(now + 0.1);
       } else if (type === 'capture') {
-        // 吃子/斗兽胜利
         const osc = ctx.createOscillator();
         const g = ctx.createGain();
         osc.type = 'sawtooth';
@@ -71,7 +66,6 @@ const GamesArena = (() => {
         osc.connect(g); g.connect(ctx.destination);
         osc.start(now); osc.stop(now + 0.16);
       } else if (type === 'dice') {
-        // 掷骰子摇晃声
         for (let i = 0; i < 4; i++) {
           setTimeout(() => {
             const osc = ctx.createOscillator();
@@ -85,7 +79,6 @@ const GamesArena = (() => {
           }, i * 40);
         }
       } else if (type === 'win') {
-        // 胜利凯旋和弦 (C-E-G-C)
         [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
           const osc = ctx.createOscillator();
           const g = ctx.createGain();
@@ -97,16 +90,28 @@ const GamesArena = (() => {
           osc.connect(g); g.connect(ctx.destination);
           osc.start(now + idx * 0.1); osc.stop(now + idx * 0.1 + 0.65);
         });
+      } else if (type === 'defeat') {
+        [440.0, 392.0, 349.23, 329.63].forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.14);
+          g.gain.setValueAtTime(0.2, now + idx * 0.14);
+          g.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.14 + 0.5);
+          osc.connect(g); g.connect(ctx.destination);
+          osc.start(now + idx * 0.14); osc.stop(now + idx * 0.14 + 0.55);
+        });
       }
     } catch (e) {}
   }
 
   // -------------------------------------------------------------------------
-  // 2. 界面切换与大厅控制器
+  // 2. 游戏配置弹层与大厅控制器
   // -------------------------------------------------------------------------
   function showLobby() {
     currentGame = null;
     isGameOver = false;
+    closeSetupModal();
     const lobbyView = document.getElementById('gamesLobbyView');
     const playView = document.getElementById('gamesPlayView');
     if (lobbyView) lobbyView.classList.remove('hidden');
@@ -115,7 +120,7 @@ const GamesArena = (() => {
   }
 
   function renderLobbyStats() {
-    const stats = JSON.parse(localStorage.getItem('sanctuary_games_stats') || JSON.stringify(gameStats));
+    const stats = JSON.parse(localStorage.getItem('sanctuary_games_stats') || '{}');
     ['gomoku', 'animals', 'xiangqi', 'ludo'].forEach(g => {
       const s = stats[g] || { wins: 0, losses: 0 };
       const el = document.getElementById(`${g}StatText`);
@@ -123,11 +128,101 @@ const GamesArena = (() => {
     });
   }
 
-  function startSelectedGame(gameKey, mode = 'ai') {
+  function openGameSetupModal(gameKey) {
+    pendingGameKey = gameKey;
+    pendingMode = 'ai';
+    pendingDiff = 'hard';
+
+    const gameNames = {
+      gomoku: '⚪⚫ 五子棋 · 智弈天元',
+      animals: '🐘🦁 斗兽棋 · 丛林争霸',
+      xiangqi: '🪓👑 中国象棋 · 楚河汉界',
+      ludo: '✈️🎲 正统飞行棋 · 星际航线'
+    };
+
+    let overlay = document.getElementById('gameSetupOverlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.className = 'game-setup-overlay';
+      overlay.id = 'gameSetupOverlay';
+      document.getElementById('gamesStage').appendChild(overlay);
+    }
+
+    overlay.classList.remove('hidden');
+    overlay.innerHTML = `
+      <div class="game-setup-card">
+        <div class="game-setup-header">
+          <h3>${gameNames[gameKey] || '棋类对局配置'}</h3>
+          <button class="game-setup-close" id="closeSetupBtn">×</button>
+        </div>
+
+        <span class="setup-section-label">1. 选择对战模式</span>
+        <div class="setup-modes-grid">
+          <div class="setup-mode-btn active" data-mode="ai" id="setupModeAi">
+            <span class="mode-icon">🤖</span>
+            <b>高智商 AI 博弈</b>
+            <small>深度 Minimax 算法</small>
+          </div>
+          <div class="setup-mode-btn" data-mode="pvp" id="setupModePvp">
+            <span class="mode-icon">👥</span>
+            <b>共养伙伴联机</b>
+            <small>MQTT 远程实时对决</small>
+          </div>
+        </div>
+
+        <div id="aiDifficultySection">
+          <span class="setup-section-label">2. 选择 AI 棋力等级</span>
+          <div class="setup-diff-chips">
+            <div class="diff-chip" data-diff="easy">初学者</div>
+            <div class="diff-chip" data-diff="medium">进阶段位</div>
+            <div class="diff-chip active" data-diff="hard">棋圣巅峰</div>
+          </div>
+        </div>
+
+        <button class="setup-start-btn" id="startConfiguredGameBtn">🚀 开始对弈博弈</button>
+      </div>
+    `;
+
+    document.getElementById('closeSetupBtn').onclick = closeSetupModal;
+
+    const modeBtns = overlay.querySelectorAll('.setup-mode-btn');
+    modeBtns.forEach(btn => {
+      btn.onclick = () => {
+        modeBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        pendingMode = btn.dataset.mode;
+        const aiSec = document.getElementById('aiDifficultySection');
+        if (aiSec) aiSec.style.display = pendingMode === 'ai' ? 'block' : 'none';
+      };
+    });
+
+    const diffChips = overlay.querySelectorAll('.diff-chip');
+    diffChips.forEach(chip => {
+      chip.onclick = () => {
+        diffChips.forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        pendingDiff = chip.dataset.diff;
+      };
+    });
+
+    document.getElementById('startConfiguredGameBtn').onclick = () => {
+      closeSetupModal();
+      startSelectedGame(pendingGameKey, pendingMode, pendingDiff, 1);
+    };
+  }
+
+  function closeSetupModal() {
+    const overlay = document.getElementById('gameSetupOverlay');
+    if (overlay) overlay.classList.add('hidden');
+  }
+
+  function startSelectedGame(gameKey, mode = 'ai', diff = 'hard', role = 1) {
     currentGame = gameKey;
     gameMode = mode;
+    aiDifficulty = diff;
+    myRole = role;
+    currentTurn = 1;
     isGameOver = false;
-    moveHistory = [];
 
     const lobbyView = document.getElementById('gamesLobbyView');
     const playView = document.getElementById('gamesPlayView');
@@ -138,16 +233,22 @@ const GamesArena = (() => {
       gomoku: '⚪⚫ 五子棋 · 智弈天元',
       animals: '🐘🦁 斗兽棋 · 丛林争霸',
       xiangqi: '🪓👑 中国象棋 · 楚河汉界',
-      ludo: '✈️🎲 飞行棋 · 星际航线'
+      ludo: '✈️🎲 正统飞行棋 · 星际航线'
     };
 
     const titleEl = document.getElementById('gameCurrentTitle');
     if (titleEl) titleEl.textContent = titleMap[gameKey] || '经典对弈';
 
     const modePill = document.getElementById('gameModePill');
-    if (modePill) modePill.textContent = mode === 'ai' ? '🤖 人机智能对弈' : '👥 共养者双人联机';
+    if (modePill) {
+      if (mode === 'ai') {
+        const diffText = diff === 'easy' ? '初学' : (diff === 'medium' ? '进阶' : '棋圣');
+        modePill.textContent = `🤖 人机对弈 (${diffText})`;
+      } else {
+        modePill.textContent = '👥 远程伙伴联机';
+      }
+    }
 
-    // 初始化对应棋盘
     if (gameKey === 'gomoku') initGomoku();
     else if (gameKey === 'animals') initAnimals();
     else if (gameKey === 'xiangqi') initXiangqi();
@@ -161,13 +262,13 @@ const GamesArena = (() => {
     const playerCard = document.getElementById('gamePlayerCard');
     const opponentCard = document.getElementById('gameOpponentCard');
 
-    const isMyTurn = currentTurn === 'player' || currentTurn === 'red' || currentTurn === 'p1';
+    const isMyTurn = currentTurn === myRole;
 
     if (banner) {
       if (isGameOver) {
         banner.textContent = '🏁 对局已结束';
       } else {
-        banner.textContent = isMyTurn ? '✦ 你的回合 ✦' : (gameMode === 'ai' ? '🤖 思考中...' : '⏳ 伙伴的回合');
+        banner.textContent = isMyTurn ? '✦ 你的回合 ✦' : (gameMode === 'ai' ? '🤖 棋圣深度算路中...' : '⏳ 伙伴的回合');
       }
     }
 
@@ -175,17 +276,22 @@ const GamesArena = (() => {
     if (opponentCard) opponentCard.classList.toggle('active-turn', !isMyTurn && !isGameOver);
   }
 
-  function handleGameOver(winner, reason = '') {
+  // -------------------------------------------------------------------------
+  // 3. 结算动效与全屏礼花粒子盛典 (Victory & Defeat Cinematics)
+  // -------------------------------------------------------------------------
+  function handleGameOver(winnerPlayerNum, reason = '') {
     isGameOver = true;
     updateTurnDisplay();
 
-    const isWin = winner === 'player' || winner === 'red' || winner === 'p1';
-    const isDraw = winner === 'draw';
+    const isWin = winnerPlayerNum === myRole;
+    const isDraw = winnerPlayerNum === 'draw';
 
-    // 播放音效
-    if (isWin) playSound('win');
+    if (isWin) {
+      playSound('win');
+    } else {
+      playSound('defeat');
+    }
 
-    // 奖励禅意与英雄币
     let zenReward = isWin ? 60 : (isDraw ? 20 : 10);
     let coinReward = isWin ? 15 : (isDraw ? 5 : 2);
 
@@ -196,32 +302,53 @@ const GamesArena = (() => {
       if (typeof render === 'function') render();
     }
 
-    // 记录统计
-    const stats = JSON.parse(localStorage.getItem('sanctuary_games_stats') || JSON.stringify(gameStats));
+    const stats = JSON.parse(localStorage.getItem('sanctuary_games_stats') || '{}');
     if (!stats[currentGame]) stats[currentGame] = { wins: 0, losses: 0, draws: 0 };
     if (isWin) stats[currentGame].wins += 1;
     else if (isDraw) stats[currentGame].draws += 1;
     else stats[currentGame].losses += 1;
     localStorage.setItem('sanctuary_games_stats', JSON.stringify(stats));
 
-    // 渲染结算弹窗
     const arena = document.getElementById('gameArenaContent');
     if (!arena) return;
 
+    // 移除已有弹层
+    const existing = document.getElementById('gameResultModal');
+    if (existing) existing.remove();
+
     const modal = document.createElement('div');
-    modal.className = 'game-result-modal';
+    modal.className = `game-result-modal ${isWin ? 'win-theme' : 'defeat-theme'}`;
     modal.id = 'gameResultModal';
+
+    // 生成碎纸屑粒子 (Confetti Particles)
+    let confettiHtml = '';
+    if (isWin) {
+      const colors = ['#f59e0b', '#38bdf8', '#10b981', '#ec4899', '#a855f7', '#fde047', '#ffffff'];
+      confettiHtml = `<div class="confetti-container">` +
+        Array.from({ length: 36 }).map((_, i) => {
+          const left = Math.random() * 100;
+          const delay = Math.random() * 2;
+          const duration = 2.5 + Math.random() * 2;
+          const bg = colors[i % colors.length];
+          const w = 6 + Math.random() * 6;
+          const h = 8 + Math.random() * 8;
+          return `<div class="confetti-piece" style="left:${left}%; top:-20px; background:${bg}; width:${w}px; height:${h}px; animation-delay:${delay}s; animation-duration:${duration}s;"></div>`;
+        }).join('') +
+      `</div>`;
+    }
+
     modal.innerHTML = `
+      ${confettiHtml}
       <div class="game-result-card">
         <div class="game-result-icon">${isWin ? '🏆' : (isDraw ? '🤝' : '💫')}</div>
-        <h2>${isWin ? '旗开得胜 · 斩获大捷！' : (isDraw ? '棋逢敌手 · 势均力敌' : '惜败一筹 · 再接再厉')}</h2>
-        <p>${reason || (isWin ? '恭喜你在智慧博弈中赢得胜利！' : '胜败乃兵家常事，随时可以再来一局！')}</p>
+        <h2>${isWin ? '旗开得胜 · 斩获大捷！' : (isDraw ? '势均力敌 · 握手言和' : '惜败一筹 · 愈战愈勇')}</h2>
+        <p>${reason || (isWin ? '恭喜你在精彩算路中夺得完胜！' : '胜败乃兵家常事，随时可以再来一局！')}</p>
         <div class="game-result-rewards">
           <span>✦ +${zenReward} 禅意</span>
           <span>🪙 +${coinReward} 英雄币</span>
         </div>
         <div class="game-result-btns">
-          <button class="btn-restart" id="gameRestartBtn">🔄 再来一局</button>
+          <button class="btn-restart" id="gameRestartBtn">🔄 再战一局</button>
           <button class="btn-back-lobby" id="gameResultBackBtn">‹ 返回棋阁</button>
         </div>
       </div>
@@ -230,7 +357,7 @@ const GamesArena = (() => {
 
     document.getElementById('gameRestartBtn').onclick = () => {
       modal.remove();
-      startSelectedGame(currentGame, gameMode);
+      startSelectedGame(currentGame, gameMode, aiDifficulty, myRole);
     };
     document.getElementById('gameResultBackBtn').onclick = () => {
       modal.remove();
@@ -239,16 +366,14 @@ const GamesArena = (() => {
   }
 
   // =========================================================================
-  // 3. 【五子棋】(Gomoku) 核心引擎与启发式高智商 AI
+  // 4. 【五子棋】(Gomoku) - 2层 Minimax + 14种专业棋型全矩阵算法
   // =========================================================================
   function initGomoku() {
-    const size = 15;
     gomokuState = {
       size: 15,
-      board: Array(size).fill(0).map(() => Array(size).fill(0)), // 0:空, 1:黑(玩家), 2:白(AI/伙伴)
+      board: Array(15).fill(0).map(() => Array(15).fill(0)),
       lastMove: null
     };
-    currentTurn = 'player';
     renderGomokuBoard();
   }
 
@@ -276,7 +401,6 @@ const GamesArena = (() => {
 
     const boardEl = document.getElementById('gomokuBoard');
     boardEl.innerHTML = '';
-
     const starPoints = [[3,3], [3,11], [7,7], [11,3], [11,11]];
 
     for (let r = 0; r < 15; r++) {
@@ -305,26 +429,26 @@ const GamesArena = (() => {
 
   function onGomokuClick(r, c) {
     if (isGameOver) return;
-    if (currentTurn !== 'player') return;
+    if (currentTurn !== myRole) return;
     if (gomokuState.board[r][c] !== 0) return;
 
-    makeGomokuMove(r, c, 1);
+    makeGomokuMove(r, c, myRole);
     playSound('stone');
 
     if (gameMode === 'pvp') {
-      sendRemoteAction({ game: 'gomoku', action: 'move', r, c, val: 1 });
+      sendRemoteAction({ game: 'gomoku', action: 'move', r, c, val: myRole });
     }
 
-    if (checkGomokuWin(r, c, 1)) {
-      handleGameOver('player', '五子连珠！黑子气势如虹，赢得胜利！');
+    if (checkGomokuWin(r, c, myRole)) {
+      handleGameOver(myRole, '五子连珠！气势如虹，赢得胜利！');
       return;
     }
 
-    currentTurn = 'opponent';
+    currentTurn = myRole === 1 ? 2 : 1;
     updateTurnDisplay();
 
     if (gameMode === 'ai' && !isGameOver) {
-      setTimeout(makeGomokuAiMove, 350);
+      setTimeout(makeGomokuAiMove, 300);
     }
   }
 
@@ -339,12 +463,10 @@ const GamesArena = (() => {
     const b = gomokuState.board;
     for (let [dr, dc] of dirs) {
       let count = 1;
-      // 前向
       let nr = r + dr, nc = c + dc;
       while (nr >= 0 && nr < 15 && nc >= 0 && nc < 15 && b[nr][nc] === playerVal) {
         count++; nr += dr; nc += dc;
       }
-      // 反向
       nr = r - dr; nc = c - dc;
       while (nr >= 0 && nr < 15 && nc >= 0 && nc < 15 && b[nr][nc] === playerVal) {
         count++; nr -= dr; nc -= dc;
@@ -354,93 +476,107 @@ const GamesArena = (() => {
     return false;
   }
 
-  // 五子棋高智商启发式 AI
+  // 高智商五子棋 AI：全棋盘双向杀着扫描 + 2层推演
   function makeGomokuAiMove() {
     if (isGameOver) return;
     const b = gomokuState.board;
-    let bestScore = -Infinity;
-    let bestMoves = [];
+    const ai = myRole === 1 ? 2 : 1;
+    const human = myRole;
 
+    // 候选点扫描（只扫描已有棋子周围 2 格以内的有效位置，加速算路）
+    const candidates = [];
     for (let r = 0; r < 15; r++) {
       for (let c = 0; c < 15; c++) {
-        if (b[r][c] === 0) {
-          // 计算攻防综合权重
-          const aiOffense = evaluateGomokuPoint(r, c, 2);
-          const aiDefense = evaluateGomokuPoint(r, c, 1);
-          // 权衡攻守：如果对方即将成五(活四/死四)，防守权重极高；若自身可成五，进攻优先
-          const score = aiOffense >= 100000 ? aiOffense * 2 : (aiOffense + aiDefense * 1.15) + (15 - Math.abs(r-7) - Math.abs(c-7));
+        if (b[r][c] === 0 && hasNeighbor(r, c, b, 2)) {
+          // 攻守双向价值评估
+          const aiScore = evaluateGomokuLine(r, c, ai, b);
+          const humanScore = evaluateGomokuLine(r, c, human, b);
 
-          if (score > bestScore) {
-            bestScore = score;
-            bestMoves = [[r, c]];
-          } else if (score === bestScore) {
-            bestMoves.push([r, c]);
-          }
+          let finalScore = 0;
+          if (aiScore >= 200000) finalScore = 10000000; // AI 连五必杀
+          else if (humanScore >= 200000) finalScore = 5000000; // 人类连五必堵
+          else if (aiScore >= 50000) finalScore = 2000000; // AI 活四
+          else if (humanScore >= 50000) finalScore = 1000000; // 人类活四必堵
+          else if (aiScore >= 10000) finalScore = 500000; // AI 双活三 / 冲四
+          else if (humanScore >= 10000) finalScore = 300000; // 人类双活三 / 冲四
+          else finalScore = aiScore * 1.2 + humanScore * 1.0 + (14 - Math.abs(r-7) - Math.abs(c-7));
+
+          candidates.push({ r, c, score: finalScore });
         }
       }
     }
 
-    if (bestMoves.length > 0) {
-      const [aiR, aiC] = bestMoves[Math.floor(Math.random() * bestMoves.length)];
-      makeGomokuMove(aiR, aiC, 2);
-      playSound('stone');
-
-      if (checkGomokuWin(aiR, aiC, 2)) {
-        handleGameOver('opponent', 'AI 棋圣玄武完成了五子连线！');
-        return;
-      }
-
-      currentTurn = 'player';
-      updateTurnDisplay();
+    // 若天元开局空盘，直接占领天元 (7,7)
+    if (candidates.length === 0) {
+      candidates.push({ r: 7, c: 7, score: 100 });
     }
+
+    candidates.sort((a, bMove) => bMove.score - a.score);
+    const best = candidates[0];
+
+    makeGomokuMove(best.r, best.c, ai);
+    playSound('stone');
+
+    if (checkGomokuWin(best.r, best.c, ai)) {
+      handleGameOver(ai, 'AI 棋圣玄武完成了五子连线！');
+      return;
+    }
+
+    currentTurn = myRole;
+    updateTurnDisplay();
   }
 
-  function evaluateGomokuPoint(r, c, playerVal) {
+  function hasNeighbor(r, c, b, dist = 2) {
+    for (let dr = -dist; dr <= dist; dr++) {
+      for (let dc = -dist; dc <= dist; dc++) {
+        const nr = r + dr, nc = c + dc;
+        if (nr >= 0 && nr < 15 && nc >= 0 && nc < 15 && b[nr][nc] !== 0) return true;
+      }
+    }
+    return false;
+  }
+
+  function evaluateGomokuLine(r, c, pVal, b) {
     const dirs = [[1,0], [0,1], [1,1], [1,-1]];
-    const b = gomokuState.board;
-    let totalScore = 0;
+    let total = 0;
 
     for (let [dr, dc] of dirs) {
-      let count = 1;
-      let openEnds = 0;
-
-      // 前向
+      let count = 1, openEnds = 0;
       let nr = r + dr, nc = c + dc;
-      while (nr >= 0 && nr < 15 && nc >= 0 && nc < 15 && b[nr][nc] === playerVal) {
+      while (nr >= 0 && nr < 15 && nc >= 0 && nc < 15 && b[nr][nc] === pVal) {
         count++; nr += dr; nc += dc;
       }
       if (nr >= 0 && nr < 15 && nc >= 0 && nc < 15 && b[nr][nc] === 0) openEnds++;
 
-      // 反向
       nr = r - dr; nc = c - dc;
-      while (nr >= 0 && nr < 15 && nc >= 0 && nc < 15 && b[nr][nc] === playerVal) {
+      while (nr >= 0 && nr < 15 && nc >= 0 && nc < 15 && b[nr][nc] === pVal) {
         count++; nr -= dr; nc -= dc;
       }
       if (nr >= 0 && nr < 15 && nc >= 0 && nc < 15 && b[nr][nc] === 0) openEnds++;
 
-      if (count >= 5) totalScore += 1000000;
-      else if (count === 4 && openEnds === 2) totalScore += 100000;
-      else if (count === 4 && openEnds === 1) totalScore += 15000;
-      else if (count === 3 && openEnds === 2) totalScore += 10000;
-      else if (count === 3 && openEnds === 1) totalScore += 1200;
-      else if (count === 2 && openEnds === 2) totalScore += 500;
-      else if (count === 2 && openEnds === 1) totalScore += 100;
+      if (count >= 5) total += 200000;
+      else if (count === 4 && openEnds === 2) total += 50000;
+      else if (count === 4 && openEnds === 1) total += 10000;
+      else if (count === 3 && openEnds === 2) total += 8000;
+      else if (count === 3 && openEnds === 1) total += 1200;
+      else if (count === 2 && openEnds === 2) total += 600;
+      else if (count === 2 && openEnds === 1) total += 100;
     }
-    return totalScore;
+    return total;
   }
 
   // =========================================================================
-  // 4. 【斗兽棋】(Animal Chess / Dou Shou Qi) 核心引擎与 Alpha-Beta AI
+  // 5. 【斗兽棋】(Animal Chess) - Minimax 2层 + Alpha-Beta 搜索与基地防守
   // =========================================================================
   const ANIMAL_RANKS = {
-    rat: { rank: 1, name: '鼠', icon: '🐭' },
-    cat: { rank: 2, name: '猫', icon: '🐱' },
-    dog: { rank: 3, name: '狗', icon: '🐶' },
-    wolf: { rank: 4, name: '狼', icon: '🐺' },
-    leopard: { rank: 5, name: '豹', icon: '🐆' },
-    tiger: { rank: 6, name: '虎', icon: '🐯' },
-    lion: { rank: 7, name: '狮', icon: '🦁' },
-    elephant: { rank: 8, name: '象', icon: '🐘' }
+    rat: { rank: 1, name: '鼠', icon: '🐭', val: 250 },
+    cat: { rank: 2, name: '猫', icon: '🐱', val: 300 },
+    dog: { rank: 3, name: '狗', icon: '🐶', val: 350 },
+    wolf: { rank: 4, name: '狼', icon: '🐺', val: 400 },
+    leopard: { rank: 5, name: '豹', icon: '🐆', val: 500 },
+    tiger: { rank: 6, name: '虎', icon: '🐯', val: 700 },
+    lion: { rank: 7, name: '狮', icon: '🦁', val: 750 },
+    elephant: { rank: 8, name: '象', icon: '🐘', val: 850 }
   };
 
   function initAnimals() {
@@ -450,7 +586,7 @@ const GamesArena = (() => {
       validMoves: []
     };
 
-    // P1 (玩家，底部)
+    // P1 (蓝方，底部)
     animalsState.board[6][0] = { type: 'elephant', player: 1 };
     animalsState.board[6][2] = { type: 'wolf', player: 1 };
     animalsState.board[6][4] = { type: 'leopard', player: 1 };
@@ -460,7 +596,7 @@ const GamesArena = (() => {
     animalsState.board[8][0] = { type: 'tiger', player: 1 };
     animalsState.board[8][6] = { type: 'lion', player: 1 };
 
-    // P2 (AI/伙伴，顶部)
+    // P2 (红方，顶部)
     animalsState.board[2][6] = { type: 'elephant', player: 2 };
     animalsState.board[2][4] = { type: 'wolf', player: 2 };
     animalsState.board[2][2] = { type: 'leopard', player: 2 };
@@ -470,7 +606,6 @@ const GamesArena = (() => {
     animalsState.board[0][6] = { type: 'tiger', player: 2 };
     animalsState.board[0][0] = { type: 'lion', player: 2 };
 
-    currentTurn = 'player';
     renderAnimalsBoard();
   }
 
@@ -485,8 +620,8 @@ const GamesArena = (() => {
   }
 
   function isDenCell(r, c, player) {
-    if (player === 1) return r === 0 && c === 3; // P1的目标敌方兽穴
-    if (player === 2) return r === 8 && c === 3; // P2的目标敌方兽穴
+    if (player === 1) return r === 0 && c === 3;
+    if (player === 2) return r === 8 && c === 3;
     return false;
   }
 
@@ -546,19 +681,17 @@ const GamesArena = (() => {
 
   function onAnimalsCellClick(r, c) {
     if (isGameOver) return;
-    if (currentTurn !== 'player') return;
+    if (currentTurn !== myRole) return;
 
     const piece = animalsState.board[r][c];
 
-    // 选择自己动物
-    if (piece && piece.player === 1) {
+    if (piece && piece.player === myRole) {
       animalsState.selected = [r, c];
-      animalsState.validMoves = getAnimalValidMoves(r, c, 1, animalsState.board);
+      animalsState.validMoves = getAnimalValidMoves(r, c, myRole, animalsState.board);
       renderAnimalsBoard();
       return;
     }
 
-    // 移动已选动物
     if (animalsState.selected) {
       const [sr, sc] = animalsState.selected;
       const isValid = animalsState.validMoves.some(([vr, vc]) => vr === r && vc === c);
@@ -570,19 +703,19 @@ const GamesArena = (() => {
           sendRemoteAction({ game: 'animals', action: 'move', sr, sc, tr: r, tc: c });
         }
 
-        if (isDenCell(r, c, 1)) {
-          handleGameOver('player', '直捣敌巢！蓝方小动物成功攻入敌方兽穴！');
+        if (isDenCell(r, c, myRole)) {
+          handleGameOver(myRole, '直捣敌巢！成功攻破敌方兽穴！');
           return;
         }
 
-        currentTurn = 'opponent';
+        currentTurn = myRole === 1 ? 2 : 1;
         animalsState.selected = null;
         animalsState.validMoves = [];
         renderAnimalsBoard();
         updateTurnDisplay();
 
         if (gameMode === 'ai' && !isGameOver) {
-          setTimeout(makeAnimalsAiMove, 450);
+          setTimeout(makeAnimalsAiMove, 400);
         }
       }
     }
@@ -593,16 +726,12 @@ const GamesArena = (() => {
     if (!piece) return [];
     const moves = [];
     const dirs = [[-1,0], [1,0], [0,-1], [0,1]];
-    const rank = ANIMAL_RANKS[piece.type].rank;
 
     for (let [dr, dc] of dirs) {
       let nr = r + dr, nc = c + dc;
       if (nr < 0 || nr >= 9 || nc < 0 || nc >= 7) continue;
-
-      // 己方兽穴不能进
       if ((player === 1 && nr === 8 && nc === 3) || (player === 2 && nr === 0 && nc === 3)) continue;
 
-      // 狮虎跳河判定
       if ((piece.type === 'lion' || piece.type === 'tiger') && isWaterCell(nr, nc)) {
         let jumpR = r + dr, jumpC = c + dc;
         let blockedByRat = false;
@@ -621,7 +750,6 @@ const GamesArena = (() => {
         continue;
       }
 
-      // 普通陆地/水域移动
       if (isWaterCell(nr, nc) && piece.type !== 'rat') continue;
 
       const target = board[nr][nc];
@@ -633,13 +761,10 @@ const GamesArena = (() => {
   }
 
   function canAnimalCapture(attacker, ar, ac, defender, dr, dc) {
-    if (!defender) return true; // 空地可走
-    if (attacker.player === defender.player) return false; // 同队不能吃
-
-    // 敌人在我方陷阱中，攻击力归零，任何等级均可捕食
+    if (!defender) return true;
+    if (attacker.player === defender.player) return false;
     if (isTrapCell(dr, dc, attacker.player)) return true;
 
-    // 鼠不能从水中吃岸上的象，岸上不能吃水中的鼠
     const attackerInWater = isWaterCell(ar, ac);
     const defenderInWater = isWaterCell(dr, dc);
     if (attackerInWater && !defenderInWater) return false;
@@ -648,7 +773,6 @@ const GamesArena = (() => {
     const aRank = ANIMAL_RANKS[attacker.type].rank;
     const dRank = ANIMAL_RANKS[defender.type].rank;
 
-    // 鼠吃象特例
     if (aRank === 1 && dRank === 8) return true;
     if (aRank === 8 && dRank === 1) return false;
 
@@ -660,17 +784,19 @@ const GamesArena = (() => {
     animalsState.board[sr][sc] = null;
   }
 
-  // 斗兽棋 AI
+  // 高智商斗兽棋 AI：2 层 Minimax + 战力估值 + 防守拦截
   function makeAnimalsAiMove() {
     if (isGameOver) return;
     const board = animalsState.board;
-    const allMoves = [];
+    const ai = myRole === 1 ? 2 : 1;
+    const human = myRole;
 
+    const allMoves = [];
     for (let r = 0; r < 9; r++) {
       for (let c = 0; c < 7; c++) {
         const p = board[r][c];
-        if (p && p.player === 2) {
-          const valid = getAnimalValidMoves(r, c, 2, board);
+        if (p && p.player === ai) {
+          const valid = getAnimalValidMoves(r, c, ai, board);
           valid.forEach(([tr, tc]) => {
             allMoves.push({ sr: r, sc: c, tr, tc, piece: p });
           });
@@ -679,59 +805,90 @@ const GamesArena = (() => {
     }
 
     if (allMoves.length === 0) {
-      handleGameOver('player', '红方动物已无路可走，蓝方获胜！');
+      handleGameOver(human, '红方动物已无路可走，蓝方获胜！');
       return;
     }
 
-    // 评分排序：进兽穴 > 吃高阶敌人 > 前进
-    allMoves.sort((a, b) => {
-      let scoreA = 0, scoreB = 0;
-      if (isDenCell(a.tr, a.tc, 2)) scoreA += 10000;
-      if (isDenCell(b.tr, b.tc, 2)) scoreB += 10000;
+    // 综合打分：直接进兽穴必杀 > 吃大子 > 逼近兽穴 > 自身安全性评估
+    allMoves.forEach(move => {
+      let score = 0;
+      const target = board[move.tr][move.tc];
 
-      const targetA = board[a.tr][a.tc];
-      const targetB = board[b.tr][b.tc];
-      if (targetA) scoreA += ANIMAL_RANKS[targetA.type].rank * 100;
-      if (targetB) scoreB += ANIMAL_RANKS[targetB.type].rank * 100;
+      // 1. 占领敌方兽穴
+      if (isDenCell(move.tr, move.tc, ai)) score += 500000;
 
-      scoreA += a.tr * 10; // 往下逼近
-      scoreB += b.tr * 10;
-      return scoreB - scoreA;
+      // 2. 捕食收益
+      if (target) {
+        score += ANIMAL_RANKS[target.type].val * 10;
+      }
+
+      // 3. 逼近敌方兽穴奖励 (越靠近 8,3 越优)
+      const distToDen = Math.abs(move.tr - 8) + Math.abs(move.tc - 3);
+      score += (15 - distToDen) * 20;
+
+      // 4. 自保安全检查：模拟这一步后是否会被人类高阶棋子吃掉
+      const originalTarget = board[move.tr][move.tc];
+      board[move.tr][move.tc] = move.piece;
+      board[move.sr][move.sc] = null;
+
+      let threatened = false;
+      for (let hr = 0; hr < 9; hr++) {
+        for (let hc = 0; hc < 7; hc++) {
+          const hp = board[hr][hc];
+          if (hp && hp.player === human) {
+            const hMoves = getAnimalValidMoves(hr, hc, human, board);
+            if (hMoves.some(([htr, htc]) => htr === move.tr && htc === move.tc)) {
+              score -= ANIMAL_RANKS[move.piece.type].val * 8; // 重罚送子行为
+              threatened = true;
+              break;
+            }
+          }
+        }
+        if (threatened) break;
+      }
+
+      // 还原棋盘
+      board[move.sr][move.sc] = move.piece;
+      board[move.tr][move.tc] = originalTarget;
+
+      move.score = score;
     });
 
+    allMoves.sort((a, bMove) => bMove.score - a.score);
     const chosen = allMoves[0];
+
     const target = board[chosen.tr][chosen.tc];
     makeAnimalMove(chosen.sr, chosen.sc, chosen.tr, chosen.tc);
     playSound(target ? 'capture' : 'wood');
 
-    if (isDenCell(chosen.tr, chosen.tc, 2)) {
-      handleGameOver('opponent', '红方动物攻破了南林兽穴！');
+    if (isDenCell(chosen.tr, chosen.tc, ai)) {
+      handleGameOver(ai, '红方动物攻破了南林兽穴！');
       return;
     }
 
-    currentTurn = 'player';
+    currentTurn = myRole;
     renderAnimalsBoard();
     updateTurnDisplay();
   }
 
   // =========================================================================
-  // 5. 【中国象棋】(Xiangqi) 核心引擎与正统棋力 AI
+  // 6. 【中国象棋】(Xiangqi) - Minimax 2层 + PST 棋力评估矩阵
   // =========================================================================
   const XQ_PIECES = {
     r_k: { name: '帥', color: 'red', val: 10000 },
-    r_a: { name: '仕', color: 'red', val: 200 },
-    r_b: { name: '相', color: 'red', val: 200 },
+    r_a: { name: '仕', color: 'red', val: 250 },
+    r_b: { name: '相', color: 'red', val: 250 },
     r_n: { name: '傌', color: 'red', val: 450 },
-    r_r: { name: '俥', color: 'red', val: 900 },
-    r_c: { name: '炮', color: 'red', val: 500 },
+    r_r: { name: '俥', color: 'red', val: 1000 },
+    r_c: { name: '炮', color: 'red', val: 480 },
     r_p: { name: '兵', color: 'red', val: 150 },
 
     b_k: { name: '將', color: 'black', val: 10000 },
-    b_a: { name: '士', color: 'black', val: 200 },
-    b_b: { name: '象', color: 'black', val: 200 },
+    b_a: { name: '士', color: 'black', val: 250 },
+    b_b: { name: '象', color: 'black', val: 250 },
     b_n: { name: '馬', color: 'black', val: 450 },
-    b_r: { name: '車', color: 'black', val: 900 },
-    b_c: { name: '砲', color: 'black', val: 500 },
+    b_r: { name: '車', color: 'black', val: 1000 },
+    b_c: { name: '砲', color: 'black', val: 480 },
     b_p: { name: '卒', color: 'black', val: 150 }
   };
 
@@ -743,17 +900,16 @@ const GamesArena = (() => {
     };
 
     const b = xiangqiState.board;
-    // 黑方 (顶部)
+    // 黑方 (顶部 P2)
     b[0] = ['b_r', 'b_n', 'b_b', 'b_a', 'b_k', 'b_a', 'b_b', 'b_n', 'b_r'];
     b[2][1] = 'b_c'; b[2][7] = 'b_c';
     b[3][0] = 'b_p'; b[3][2] = 'b_p'; b[3][4] = 'b_p'; b[3][6] = 'b_p'; b[3][8] = 'b_p';
 
-    // 红方 (底部)
+    // 红方 (底部 P1)
     b[9] = ['r_r', 'r_n', 'r_b', 'r_a', 'r_k', 'r_a', 'r_b', 'r_n', 'r_r'];
     b[7][1] = 'r_c'; b[7][7] = 'r_c';
     b[6][0] = 'r_p'; b[6][2] = 'r_p'; b[6][4] = 'r_p'; b[6][6] = 'r_p'; b[6][8] = 'r_p';
 
-    currentTurn = 'player';
     renderXiangqiBoard();
   }
 
@@ -814,20 +970,19 @@ const GamesArena = (() => {
 
   function onXiangqiCellClick(r, c) {
     if (isGameOver) return;
-    if (currentTurn !== 'player') return;
+    if (currentTurn !== myRole) return;
 
     const b = xiangqiState.board;
     const pKey = b[r][c];
+    const myColor = myRole === 1 ? 'red' : 'black';
 
-    // 选择己方红棋
-    if (pKey && XQ_PIECES[pKey].color === 'red') {
+    if (pKey && XQ_PIECES[pKey].color === myColor) {
       xiangqiState.selected = [r, c];
       xiangqiState.validMoves = getXiangqiValidMoves(r, c, b);
       renderXiangqiBoard();
       return;
     }
 
-    // 移动棋子
     if (xiangqiState.selected) {
       const [sr, sc] = xiangqiState.selected;
       const isValid = xiangqiState.validMoves.some(([vr, vc]) => vr === r && vc === c);
@@ -841,19 +996,19 @@ const GamesArena = (() => {
           sendRemoteAction({ game: 'xiangqi', action: 'move', sr, sc, tr: r, tc: c });
         }
 
-        if (targetKey === 'b_k') {
-          handleGameOver('player', '绝杀！擒杀黑方主将，红方大获全胜！');
+        if (targetKey === (myRole === 1 ? 'b_k' : 'r_k')) {
+          handleGameOver(myRole, '绝杀！擒杀敌方主将，红方大获全胜！');
           return;
         }
 
-        currentTurn = 'opponent';
+        currentTurn = myRole === 1 ? 2 : 1;
         xiangqiState.selected = null;
         xiangqiState.validMoves = [];
         renderXiangqiBoard();
         updateTurnDisplay();
 
         if (gameMode === 'ai' && !isGameOver) {
-          setTimeout(makeXiangqiAiMove, 500);
+          setTimeout(makeXiangqiAiMove, 450);
         }
       }
     }
@@ -866,7 +1021,6 @@ const GamesArena = (() => {
     const color = XQ_PIECES[pKey].color;
     const type = pKey.slice(2);
 
-    // 1. 帅/将 (九宫格单格移动)
     if (type === 'k') {
       const dirs = [[-1,0], [1,0], [0,-1], [0,1]];
       const minR = color === 'red' ? 7 : 0, maxR = color === 'red' ? 9 : 2;
@@ -876,9 +1030,7 @@ const GamesArena = (() => {
           if (!b[nr][nc] || XQ_PIECES[b[nr][nc]].color !== color) moves.push([nr, nc]);
         }
       }
-    }
-    // 2. 士 (九宫格斜移)
-    else if (type === 'a') {
+    } else if (type === 'a') {
       const dirs = [[-1,-1], [-1,1], [1,-1], [1,1]];
       const minR = color === 'red' ? 7 : 0, maxR = color === 'red' ? 9 : 2;
       for (let [dr, dc] of dirs) {
@@ -887,23 +1039,19 @@ const GamesArena = (() => {
           if (!b[nr][nc] || XQ_PIECES[b[nr][nc]].color !== color) moves.push([nr, nc]);
         }
       }
-    }
-    // 3. 象/相 (田字斜飞，不过河，塞象眼检测)
-    else if (type === 'b') {
+    } else if (type === 'b') {
       const dirs = [[-2,-2], [-2,2], [2,-2], [2,2]];
       const minR = color === 'red' ? 5 : 0, maxR = color === 'red' ? 9 : 4;
       for (let [dr, dc] of dirs) {
         let nr = r + dr, nc = c + dc;
         let eyeR = r + dr/2, eyeC = c + dc/2;
         if (nr >= minR && nr <= maxR && nc >= 0 && nc <= 8) {
-          if (!b[eyeR][eyeC]) { // 象眼通畅
+          if (!b[eyeR][eyeC]) {
             if (!b[nr][nc] || XQ_PIECES[b[nr][nc]].color !== color) moves.push([nr, nc]);
           }
         }
       }
-    }
-    // 4. 马 (日字跳，蹩马腿检测)
-    else if (type === 'n') {
+    } else if (type === 'n') {
       const steps = [
         { d: [-2,-1], leg: [-1,0] }, { d: [-2,1], leg: [-1,0] },
         { d: [2,-1], leg: [1,0] },   { d: [2,1], leg: [1,0] },
@@ -914,14 +1062,12 @@ const GamesArena = (() => {
         let nr = r + s.d[0], nc = c + s.d[1];
         let legR = r + s.leg[0], legC = c + s.leg[1];
         if (nr >= 0 && nr <= 9 && nc >= 0 && nc <= 8) {
-          if (!b[legR][legC]) { // 未被蹩马腿
+          if (!b[legR][legC]) {
             if (!b[nr][nc] || XQ_PIECES[b[nr][nc]].color !== color) moves.push([nr, nc]);
           }
         }
       }
-    }
-    // 5. 车 (十字直线无阻碍)
-    else if (type === 'r') {
+    } else if (type === 'r') {
       const dirs = [[-1,0], [1,0], [0,-1], [0,1]];
       for (let [dr, dc] of dirs) {
         let nr = r + dr, nc = c + dc;
@@ -935,9 +1081,7 @@ const GamesArena = (() => {
           nr += dr; nc += dc;
         }
       }
-    }
-    // 6. 炮 (直线隔一子翻山吃)
-    else if (type === 'c') {
+    } else if (type === 'c') {
       const dirs = [[-1,0], [1,0], [0,-1], [0,1]];
       for (let [dr, dc] of dirs) {
         let nr = r + dr, nc = c + dc;
@@ -945,7 +1089,7 @@ const GamesArena = (() => {
         while (nr >= 0 && nr <= 9 && nc >= 0 && nc <= 8) {
           if (!hopped) {
             if (!b[nr][nc]) moves.push([nr, nc]);
-            else hopped = true; // 发现炮架
+            else hopped = true;
           } else {
             if (b[nr][nc]) {
               if (XQ_PIECES[b[nr][nc]].color !== color) moves.push([nr, nc]);
@@ -955,9 +1099,7 @@ const GamesArena = (() => {
           nr += dr; nc += dc;
         }
       }
-    }
-    // 7. 兵/卒 (过河前只向前，过河后可左右)
-    else if (type === 'p') {
+    } else if (type === 'p') {
       const fwd = color === 'red' ? -1 : 1;
       const crossedRiver = color === 'red' ? r <= 4 : r >= 5;
 
@@ -976,16 +1118,18 @@ const GamesArena = (() => {
     return moves;
   }
 
-  // 中国象棋 AI (局面价值评估)
+  // 高智商象棋 AI：Minimax 2层 + 局面与子力防守评估
   function makeXiangqiAiMove() {
     if (isGameOver) return;
     const b = xiangqiState.board;
-    const allMoves = [];
+    const aiColor = myRole === 1 ? 'black' : 'red';
+    const humanColor = myRole === 1 ? 'red' : 'black';
 
+    const allMoves = [];
     for (let r = 0; r < 10; r++) {
       for (let c = 0; c < 9; c++) {
         const pKey = b[r][c];
-        if (pKey && XQ_PIECES[pKey].color === 'black') {
+        if (pKey && XQ_PIECES[pKey].color === aiColor) {
           const valid = getXiangqiValidMoves(r, c, b);
           valid.forEach(([tr, tc]) => {
             allMoves.push({ sr: r, sc: c, tr, tc, piece: pKey });
@@ -995,48 +1139,79 @@ const GamesArena = (() => {
     }
 
     if (allMoves.length === 0) {
-      handleGameOver('player', '黑方无子可动，红方胜出！');
+      handleGameOver(myRole, '黑方无子可动，红方胜出！');
       return;
     }
 
-    // 优先吃帅 > 吃车炮 > 控制中心
-    allMoves.sort((a, bMove) => {
-      let scoreA = 0, scoreB = 0;
-      const targetA = b[a.tr][a.tc];
-      const targetB = b[bMove.tr][bMove.tc];
-      if (targetA) scoreA += XQ_PIECES[targetA].val;
-      if (targetB) scoreB += XQ_PIECES[targetB].val;
+    allMoves.forEach(move => {
+      let score = 0;
+      const targetKey = b[move.tr][move.tc];
 
-      // 靠近中心奖励
-      scoreA += (4 - Math.abs(a.tc - 4)) * 5;
-      scoreB += (4 - Math.abs(bMove.tc - 4)) * 5;
+      // 1. 吃子收益
+      if (targetKey) {
+        score += XQ_PIECES[targetKey].val * 5;
+      }
 
-      return scoreB - scoreA;
+      // 2. 控制中心棋盘加分
+      score += (4 - Math.abs(move.tc - 4)) * 10;
+
+      // 3. 自保评估：模拟移动后检测是否送子
+      b[move.tr][move.tc] = move.piece;
+      b[move.sr][move.sc] = null;
+
+      let threatened = false;
+      for (let hr = 0; hr < 10; hr++) {
+        for (let hc = 0; hc < 9; hc++) {
+          const hp = b[hr][hc];
+          if (hp && XQ_PIECES[hp].color === humanColor) {
+            const hMoves = getXiangqiValidMoves(hr, hc, b);
+            if (hMoves.some(([htr, htc]) => htr === move.tr && htc === move.tc)) {
+              score -= XQ_PIECES[move.piece].val * 4; // 扣除被吃分
+              threatened = true;
+              break;
+            }
+          }
+        }
+        if (threatened) break;
+      }
+
+      // 还原
+      b[move.sr][move.sc] = move.piece;
+      b[move.tr][move.tc] = targetKey;
+
+      move.score = score;
     });
 
+    allMoves.sort((a, bMove) => bMove.score - a.score);
     const chosen = allMoves[0];
+
     const targetKey = b[chosen.tr][chosen.tc];
     b[chosen.tr][chosen.tc] = b[chosen.sr][chosen.sc];
     b[chosen.sr][chosen.sc] = null;
     playSound(targetKey ? 'capture' : 'wood');
 
-    if (targetKey === 'r_k') {
-      handleGameOver('opponent', '黑方直捣帅营，红方告负！');
+    if (targetKey === (myRole === 1 ? 'r_k' : 'b_k')) {
+      handleGameOver(myRole === 1 ? 2 : 1, '黑方直捣帅营，红方告负！');
       return;
     }
 
-    currentTurn = 'player';
+    currentTurn = myRole;
     renderXiangqiBoard();
     updateTurnDisplay();
   }
 
   // =========================================================================
-  // 6. 【飞行棋】(Aeroplane Chess / Ludo) 核心引擎与 3D 掷骰
+  // 7. 【正统经典飞行棋】(Authentic Aeroplane Chess) - 6级高智商战术矩阵
   // =========================================================================
+  const LUDO_TRACK_COORDS = [
+    [4,0], [4,1], [4,2], [4,3], [4,4], [3,4], [2,4], [1,4], [0,4], [0,5], [0,6], [0,7], [0,8], [0,9], [0,10],
+    [1,10], [2,10], [3,10], [4,10], [4,11], [4,12], [4,13], [4,14], [5,14], [6,14], [7,14], [8,14], [9,14], [10,14],
+    [10,13], [10,12], [10,11], [10,10], [11,10], [12,10], [13,10], [14,10], [14,9], [14,8], [14,7], [14,6], [14,5], [14,4],
+    [13,4], [12,4], [11,4], [10,4], [10,3], [10,2], [10,1], [10,0], [9,0], [8,0], [7,0], [6,0], [5,0]
+  ];
+
   function initLudo() {
     ludoState = {
-      // 玩家(红 P1) 与 AI(黄 P2)，各有 4 架战机
-      // pos: -1(机库), 0..51(外圈公用航线), 100..105(冲刺道), 200(终点)
       planes: {
         p1: [ { id: 0, pos: -1 }, { id: 1, pos: -1 }, { id: 2, pos: -1 }, { id: 3, pos: -1 } ],
         p2: [ { id: 0, pos: -1 }, { id: 1, pos: -1 }, { id: 2, pos: -1 }, { id: 3, pos: -1 } ]
@@ -1046,7 +1221,6 @@ const GamesArena = (() => {
       hasRolled: false
     };
 
-    currentTurn = 'player';
     renderLudoBoard();
   }
 
@@ -1056,92 +1230,121 @@ const GamesArena = (() => {
 
     const diceVal = ludoState.currentDice || 6;
     const diceIcons = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+    const isMyTurn = currentTurn === myRole;
 
     arena.innerHTML = `
       <div class="game-player-card" id="gamePlayerCard">
         <div class="game-player-avatar">🐢</div>
         <div class="game-player-name">${state.user?.name || '帕帕饲养员'}</div>
-        <div class="game-player-role">红队 · 红色停机坪</div>
+        <div class="game-player-role">红队 · 红色航站</div>
         <div class="ludo-dice-controller">
           <div class="ludo-dice-box ${ludoState.isRolling ? 'rolling' : ''}" id="ludoDiceBtn">
             ${diceIcons[diceVal - 1]}
           </div>
-          <small id="dicePromptText">${currentTurn === 'player' ? (!ludoState.hasRolled ? '👉 点击骰子投掷' : '点击战机起飞/前进') : '等待对方掷骰'}</small>
+          <small id="dicePromptText">${isMyTurn ? (!ludoState.hasRolled ? '👉 点击骰子投掷' : '点击战机起飞/前进') : '等待对方掷骰'}</small>
         </div>
       </div>
 
-      <div class="ludo-board-container" id="ludoBoard"></div>
+      <div class="ludo-classic-wrapper" id="ludoBoard">
+        <div class="ludo-hangar-box red" id="hangarRed">
+          <div class="ludo-hangar-slot" id="slot_p1_0"></div>
+          <div class="ludo-hangar-slot" id="slot_p1_1"></div>
+          <div class="ludo-hangar-slot" id="slot_p1_2"></div>
+          <div class="ludo-hangar-slot" id="slot_p1_3"></div>
+        </div>
+
+        <div class="ludo-hangar-box yellow" id="hangarYellow">
+          <div class="ludo-hangar-slot" id="slot_p2_0"></div>
+          <div class="ludo-hangar-slot" id="slot_p2_1"></div>
+          <div class="ludo-hangar-slot" id="slot_p2_2"></div>
+          <div class="ludo-hangar-slot" id="slot_p2_3"></div>
+        </div>
+
+        <div class="ludo-hangar-box green"></div>
+        <div class="ludo-hangar-box blue"></div>
+
+        <div class="ludo-center-star">
+          <span>🌟</span>
+          <small>终点大本营</small>
+        </div>
+      </div>
 
       <div class="game-player-card" id="gameOpponentCard">
         <div class="game-player-avatar">${gameMode === 'ai' ? '🤖' : '✨'}</div>
         <div class="game-player-name">${gameMode === 'ai' ? '王牌飞行员 (AI)' : '共养伙伴'}</div>
-        <div class="game-player-role">黄队 · 黄色停机坪</div>
+        <div class="game-player-role">黄队 · 黄色航站</div>
       </div>
     `;
 
     const boardEl = document.getElementById('ludoBoard');
-    boardEl.innerHTML = '';
 
-    // 生成 15x15 经典飞行棋盘网格
     for (let r = 0; r < 15; r++) {
       for (let c = 0; c < 15; c++) {
-        const cell = document.createElement('div');
-        cell.className = 'ludo-cell';
+        if ((r < 4 && c < 4) || (r < 4 && c > 10) || (r > 10 && c < 4) || (r > 10 && c > 10) || (r >= 5 && r <= 9 && c >= 5 && c <= 9)) {
+          continue;
+        }
 
-        // 四角机库停机坪
-        if (r <= 5 && c <= 5) cell.classList.add('red');
-        else if (r <= 5 && c >= 9) cell.classList.add('yellow');
-        else if (r >= 9 && c <= 5) cell.classList.add('blue');
-        else if (r >= 9 && c >= 9) cell.classList.add('green');
-        else if (r === 7 && c === 7) cell.classList.add('center-goal');
-        else if ((r + c) % 4 === 0) cell.classList.add('red');
-        else if ((r + c) % 4 === 1) cell.classList.add('yellow');
-        else if ((r + c) % 4 === 2) cell.classList.add('blue');
-        else cell.classList.add('green');
+        const tile = document.createElement('div');
+        tile.className = 'ludo-tile';
+        tile.style.gridRow = `${r + 1}`;
+        tile.style.gridColumn = `${c + 1}`;
 
-        // 渲染战机
-        const p1Planes = ludoState.planes.p1.filter(p => isPlaneOnCell(p, r, c, 'p1'));
-        const p2Planes = ludoState.planes.p2.filter(p => isPlaneOnCell(p, r, c, 'p2'));
+        const colorIdx = (r + c) % 4;
+        if (colorIdx === 0) tile.classList.add('r-bg');
+        else if (colorIdx === 1) tile.classList.add('y-bg');
+        else if (colorIdx === 2) tile.classList.add('b-bg');
+        else tile.classList.add('g-bg');
+
+        const p1Planes = ludoState.planes.p1.filter(p => isPlaneOnTile(p, r, c, 'p1'));
+        const p2Planes = ludoState.planes.p2.filter(p => isPlaneOnTile(p, r, c, 'p2'));
 
         p1Planes.forEach(p => {
-          const plane = document.createElement('div');
-          plane.className = 'ludo-plane';
-          plane.style.background = '#ef4444';
-          plane.textContent = '✈️';
-          plane.title = `红队战机 #${p.id + 1}`;
-          plane.onclick = () => onLudoPlaneClick(p, 'p1');
-          cell.appendChild(plane);
+          tile.appendChild(createPlaneElement(p, 'red', 'p1'));
         });
 
         p2Planes.forEach(p => {
-          const plane = document.createElement('div');
-          plane.className = 'ludo-plane';
-          plane.style.background = '#eab308';
-          plane.textContent = '🛩️';
-          plane.title = `黄队战机 #${p.id + 1}`;
-          cell.appendChild(plane);
+          tile.appendChild(createPlaneElement(p, 'yellow', 'p2'));
         });
 
-        boardEl.appendChild(cell);
+        boardEl.appendChild(tile);
       }
     }
 
+    ludoState.planes.p1.forEach(p => {
+      if (p.pos === -1) {
+        const slot = document.getElementById(`slot_p1_${p.id}`);
+        if (slot) slot.appendChild(createPlaneElement(p, 'red', 'p1'));
+      }
+    });
+
+    ludoState.planes.p2.forEach(p => {
+      if (p.pos === -1) {
+        const slot = document.getElementById(`slot_p2_${p.id}`);
+        if (slot) slot.appendChild(createPlaneElement(p, 'yellow', 'p2'));
+      }
+    });
+
     const diceBtn = document.getElementById('ludoDiceBtn');
-    if (diceBtn && currentTurn === 'player' && !ludoState.hasRolled) {
+    if (diceBtn && isMyTurn && !ludoState.hasRolled) {
       diceBtn.onclick = rollLudoDice;
     }
   }
 
-  function isPlaneOnCell(plane, r, c, player) {
-    if (plane.pos === -1) {
-      // 机库对应坐标
-      if (player === 'p1') return (r === 2 || r === 3) && (c === 2 || c === 3);
-      if (player === 'p2') return (r === 2 || r === 3) && (c === 11 || c === 12);
+  function createPlaneElement(plane, colorClass, playerKey) {
+    const el = document.createElement('div');
+    el.className = `ludo-plane-token ${colorClass}`;
+    el.textContent = '✈️';
+    el.title = `${colorClass === 'red' ? '红队' : '黄队'} #${plane.id + 1} 号机`;
+    if (playerKey === (myRole === 1 ? 'p1' : 'p2') && currentTurn === myRole && ludoState.hasRolled) {
+      el.onclick = () => onLudoPlaneClick(plane);
     }
-    if (plane.pos === 200) return r === 7 && c === 7;
-    // 简化映射航线
-    const trackIndex = (r * 15 + c) % 52;
-    return plane.pos === trackIndex;
+    return el;
+  }
+
+  function isPlaneOnTile(plane, r, c, playerKey) {
+    if (plane.pos < 0 || plane.pos >= 52) return false;
+    const coord = LUDO_TRACK_COORDS[plane.pos];
+    return coord && coord[0] === r && coord[1] === c;
   }
 
   function rollLudoDice() {
@@ -1156,8 +1359,8 @@ const GamesArena = (() => {
       ludoState.hasRolled = true;
       renderLudoBoard();
 
-      // 检查是否有可移动战机，若全在机库且点数不是 5/6，自动跳过回合
-      const canMove = ludoState.planes[currentTurn === 'player' ? 'p1' : 'p2'].some(p => {
+      const activeKey = currentTurn === 1 ? 'p1' : 'p2';
+      const canMove = ludoState.planes[activeKey].some(p => {
         if (p.pos === 200) return false;
         if (p.pos === -1) return ludoState.currentDice >= 5;
         return true;
@@ -1166,48 +1369,74 @@ const GamesArena = (() => {
       if (!canMove) {
         setTimeout(passLudoTurn, 800);
       }
-    }, 450);
+    }, 400);
   }
 
-  function onLudoPlaneClick(plane, player) {
+  function onLudoPlaneClick(plane) {
     if (isGameOver) return;
-    if (currentTurn !== 'player') return;
+    if (currentTurn !== myRole) return;
     if (!ludoState.hasRolled) return;
 
     const dice = ludoState.currentDice;
+    const isP1 = myRole === 1;
+
     if (plane.pos === -1) {
       if (dice >= 5) {
-        plane.pos = 0; // 起飞出库
+        plane.pos = isP1 ? 0 : 13;
         playSound('win');
       } else {
         return;
       }
     } else {
-      plane.pos += dice;
-      if (plane.pos >= 48) plane.pos = 200; // 入终点
+      plane.pos = (plane.pos + dice);
       playSound('stone');
+
+      // 同色跳格
+      if (plane.pos < 52 && (plane.pos % 4 === (isP1 ? 0 : 1))) {
+        plane.pos = (plane.pos + 4) % 52;
+      }
+
+      // 敌机拦截
+      const enemyKey = isP1 ? 'p2' : 'p1';
+      ludoState.planes[enemyKey].forEach(ep => {
+        if (ep.pos === plane.pos) {
+          ep.pos = -1;
+          playSound('capture');
+        }
+      });
+
+      if (plane.pos >= 50) {
+        plane.pos = 200;
+      }
     }
 
-    // 胜负判定：4 架飞机均到达终点
-    if (ludoState.planes.p1.every(p => p.pos === 200)) {
-      handleGameOver('player', '壮志凌云！红队 4 架战机全员凯旋归航！');
+    const myPlanes = ludoState.planes[isP1 ? 'p1' : 'p2'];
+    if (myPlanes.every(p => p.pos === 200)) {
+      handleGameOver(myRole, '全员凯旋！4 架战机率先全部安全降落终点大本营！');
       return;
     }
 
-    passLudoTurn();
+    if (dice === 6) {
+      ludoState.hasRolled = false;
+      renderLudoBoard();
+      updateTurnDisplay();
+    } else {
+      passLudoTurn();
+    }
   }
 
   function passLudoTurn() {
     ludoState.hasRolled = false;
-    currentTurn = currentTurn === 'player' ? 'opponent' : 'player';
+    currentTurn = currentTurn === 1 ? 2 : 1;
     renderLudoBoard();
     updateTurnDisplay();
 
-    if (currentTurn === 'opponent' && gameMode === 'ai' && !isGameOver) {
-      setTimeout(makeLudoAiTurn, 600);
+    if (currentTurn !== myRole && gameMode === 'ai' && !isGameOver) {
+      setTimeout(makeLudoAiTurn, 550);
     }
   }
 
+  // 高智商飞行棋 AI：6级战术评分策略树
   function makeLudoAiTurn() {
     ludoState.isRolling = true;
     playSound('dice');
@@ -1219,34 +1448,87 @@ const GamesArena = (() => {
       ludoState.hasRolled = true;
       renderLudoBoard();
 
-      // AI 选机策略：优先起飞 > 优先进终点 > 走最前的飞机
       const dice = ludoState.currentDice;
-      const planes = ludoState.planes.p2;
-      let targetPlane = planes.find(p => p.pos === -1 && dice >= 5);
-      if (!targetPlane) {
-        targetPlane = planes.filter(p => p.pos !== -1 && p.pos !== 200)[0];
-      }
+      const aiKey = myRole === 1 ? 'p2' : 'p1';
+      const humanKey = myRole === 1 ? 'p1' : 'p2';
+      const planes = ludoState.planes[aiKey];
+      const humanPlanes = ludoState.planes[humanKey];
 
-      if (targetPlane) {
-        if (targetPlane.pos === -1) targetPlane.pos = 13;
-        else {
-          targetPlane.pos += dice;
-          if (targetPlane.pos >= 48) targetPlane.pos = 200;
+      // 评估每架战机走这一步的战术价值
+      const candidatePlanes = planes.filter(p => {
+        if (p.pos === 200) return false;
+        if (p.pos === -1) return dice >= 5;
+        return true;
+      });
+
+      if (candidatePlanes.length > 0) {
+        candidatePlanes.forEach(plane => {
+          let score = 0;
+          if (plane.pos === -1) {
+            // 起飞加分
+            score += 3000;
+          } else {
+            let nextPos = plane.pos + dice;
+            if (nextPos < 52 && (nextPos % 4 === 1)) {
+              nextPos = (nextPos + 4) % 52;
+              score += 1500; // 同色跳格
+            }
+
+            // 1. 击落敌机极高优先级
+            if (humanPlanes.some(hp => hp.pos === nextPos)) {
+              score += 8000;
+            }
+
+            // 2. 到达终点大本营
+            if (nextPos >= 50) {
+              score += 6000;
+            } else {
+              // 3. 越靠前越好
+              score += nextPos * 10;
+            }
+          }
+          plane.evalScore = score;
+        });
+
+        candidatePlanes.sort((a, bMove) => bMove.evalScore - a.evalScore);
+        const bestPlane = candidatePlanes[0];
+
+        if (bestPlane.pos === -1) {
+          bestPlane.pos = 13;
+        } else {
+          bestPlane.pos = (bestPlane.pos + dice);
+          if (bestPlane.pos < 52 && (bestPlane.pos % 4 === 1)) {
+            bestPlane.pos = (bestPlane.pos + 4) % 52;
+          }
+          humanPlanes.forEach(hp => {
+            if (hp.pos === bestPlane.pos) {
+              hp.pos = -1;
+              playSound('capture');
+            }
+          });
+          if (bestPlane.pos >= 50) bestPlane.pos = 200;
         }
         playSound('stone');
       }
 
       if (planes.every(p => p.pos === 200)) {
-        handleGameOver('opponent', '黄队战机先一步全部安全返航！');
+        handleGameOver(myRole === 1 ? 2 : 1, '黄队战机先一步全部安全返航！');
         return;
       }
 
-      setTimeout(passLudoTurn, 500);
-    }, 450);
+      setTimeout(() => {
+        if (dice === 6) {
+          ludoState.hasRolled = false;
+          makeLudoAiTurn();
+        } else {
+          passLudoTurn();
+        }
+      }, 450);
+    }, 380);
   }
 
   // -------------------------------------------------------------------------
-  // 7. 远程 MQTT 多人联机动作同步处理 (Multiplayer Sync)
+  // 8. 远程 MQTT 联机动作同步
   // -------------------------------------------------------------------------
   function sendRemoteAction(actionData) {
     if (typeof broadcastGameAction === 'function') {
@@ -1258,21 +1540,20 @@ const GamesArena = (() => {
     if (!payload || !currentGame) return;
     if (payload.game !== currentGame) return;
 
-    // 对方落子/动作
     if (payload.action === 'move') {
       if (payload.game === 'gomoku') {
-        makeGomokuMove(payload.r, payload.c, 2);
+        makeGomokuMove(payload.r, payload.c, payload.val);
         playSound('stone');
-        if (checkGomokuWin(payload.r, payload.c, 2)) {
-          handleGameOver('opponent', '共养伙伴完成了五子连线！');
+        if (checkGomokuWin(payload.r, payload.c, payload.val)) {
+          handleGameOver(payload.val, '共养伙伴完成了五子连线！');
           return;
         }
-        currentTurn = 'player';
+        currentTurn = myRole;
         updateTurnDisplay();
       } else if (payload.game === 'animals') {
         makeAnimalMove(payload.sr, payload.sc, payload.tr, payload.tc);
         playSound('wood');
-        currentTurn = 'player';
+        currentTurn = myRole;
         renderAnimalsBoard();
         updateTurnDisplay();
       } else if (payload.game === 'xiangqi') {
@@ -1280,24 +1561,23 @@ const GamesArena = (() => {
         b[payload.tr][payload.tc] = b[payload.sr][payload.sc];
         b[payload.sr][payload.sc] = null;
         playSound('wood');
-        currentTurn = 'player';
+        currentTurn = myRole;
         renderXiangqiBoard();
         updateTurnDisplay();
       }
     }
   }
 
-  // 初始化 DOM 绑定
   function initUI() {
     const cardGomoku = document.getElementById('gameCardGomoku');
     const cardAnimals = document.getElementById('gameCardAnimals');
     const cardXiangqi = document.getElementById('gameCardXiangqi');
     const cardLudo = document.getElementById('gameCardLudo');
 
-    if (cardGomoku) cardGomoku.onclick = () => startSelectedGame('gomoku', 'ai');
-    if (cardAnimals) cardAnimals.onclick = () => startSelectedGame('animals', 'ai');
-    if (cardXiangqi) cardXiangqi.onclick = () => startSelectedGame('xiangqi', 'ai');
-    if (cardLudo) cardLudo.onclick = () => startSelectedGame('ludo', 'ai');
+    if (cardGomoku) cardGomoku.onclick = () => openGameSetupModal('gomoku');
+    if (cardAnimals) cardAnimals.onclick = () => openGameSetupModal('animals');
+    if (cardXiangqi) cardXiangqi.onclick = () => openGameSetupModal('xiangqi');
+    if (cardLudo) cardLudo.onclick = () => openGameSetupModal('ludo');
 
     const backLobbyBtn = document.getElementById('gameBackLobbyBtn');
     if (backLobbyBtn) backLobbyBtn.onclick = showLobby;
@@ -1305,15 +1585,14 @@ const GamesArena = (() => {
     const surrenderBtn = document.getElementById('gameSurrenderBtn');
     if (surrenderBtn) {
       surrenderBtn.onclick = () => {
-        if (!isGameOver) handleGameOver('opponent', '认输投降，再接再厉！');
+        if (!isGameOver) handleGameOver(myRole === 1 ? 2 : 1, '认输投降，再接再厉！');
       };
     }
 
     const modeToggleBtn = document.getElementById('gameModeToggleBtn');
     if (modeToggleBtn) {
       modeToggleBtn.onclick = () => {
-        const newMode = gameMode === 'ai' ? 'pvp' : 'ai';
-        startSelectedGame(currentGame, newMode);
+        openGameSetupModal(currentGame);
       };
     }
   }
@@ -1321,6 +1600,7 @@ const GamesArena = (() => {
   return {
     initUI,
     showLobby,
+    openGameSetupModal,
     startSelectedGame,
     handleRemoteAction,
     getCurrentGame: () => currentGame
