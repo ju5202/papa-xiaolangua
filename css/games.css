@@ -17,6 +17,12 @@
   z-index: 10;
 }
 
+.games-stage.hidden,
+.games-view-lobby.hidden,
+.games-view-play.hidden {
+  display: none !important;
+}
+
 .games-backdrop {
   position: absolute;
   inset: 0;

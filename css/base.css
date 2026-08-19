@@ -240,12 +240,12 @@
 /* 世界探索模式切换卡片 (置于侧边栏，不遮挡中央背景与天空) */
 .world-switch-card {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
   background: rgba(15, 20, 48, 0.65);
   border: 1px solid var(--line);
   border-radius: 14px;
-  padding: 6px;
+  padding: 5px 4px;
   margin-bottom: 14px;
   backdrop-filter: blur(10px);
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1), 0 4px 14px rgba(0, 0, 0, 0.2);
@@ -253,16 +253,18 @@
 
 .world-switch-btn {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 7px 8px;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 2px;
   background: transparent;
   border: 1px solid transparent;
   border-radius: 10px;
   color: #94a3b8;
   cursor: pointer;
   transition: all 0.22s var(--ease-bounce);
-  text-align: left;
+  text-align: center;
 }
 
 .world-switch-btn:hover {
@@ -285,8 +287,15 @@
   box-shadow: 0 2px 12px rgba(239, 68, 68, 0.35);
 }
 
+.world-switch-btn#navGamesBtn.active {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(217, 119, 6, 0.3));
+  border-color: rgba(245, 158, 11, 0.6);
+  color: #fef08a;
+  box-shadow: 0 2px 12px rgba(245, 158, 11, 0.35);
+}
+
 .switch-icon {
-  font-size: 18px;
+  font-size: 16px;
   flex-shrink: 0;
 }
 
@@ -294,6 +303,17 @@
   display: flex;
   flex-direction: column;
   line-height: 1.15;
+  align-items: center;
+}
+
+.switch-info b {
+  font-size: 11.5px;
+}
+
+.switch-info small {
+  font-size: 9.5px;
+  color: #94a3b8;
+  white-space: nowrap;
 }
 
 .switch-info b {
@@ -471,5 +491,10 @@
   color: #b0b7d8;
   font-size: 11.5px;
   font-family: var(--mono);
+}
+
+/* 全局隐藏工具类 */
+.hidden {
+  display: none !important;
 }
 
