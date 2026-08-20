@@ -126,33 +126,7 @@
         }
       });
 
-      // 2. 智能合并两只乌龟的经验、等级、装扮与龟壳状态
-      const mergedPets = { ...state.pets };
-      ['papa', 'pumpkin'].forEach(petId => {
-        const localPet = mergedPets[petId] || defaultState.pets[petId];
-        const remotePet = incoming.pets?.[petId];
-        if (!remotePet) return;
-
-        const localCumXp = getCumulativeXp(localPet.level, localPet.xp);
-        const remoteCumXp = getCumulativeXp(remotePet.level, remotePet.xp);
-        const bestCumXp = Math.max(localCumXp, remoteCumXp);
-        const { level, xp } = resolveLevelAndXp(bestCumXp);
-
-        localPet.level = level;
-        localPet.xp = xp;
-        localPet.hunger = Math.max(localPet.hunger || 0, remotePet.hunger || 0);
-        localPet.happiness = Math.max(localPet.happiness || 0, remotePet.happiness || 0);
-        localPet.clean = Math.max(localPet.clean || 0, remotePet.clean || 0);
-        if (remotePet.equipment !== undefined) localPet.equipment = remotePet.equipment;
-        if (remotePet.shell) localPet.shell = remotePet.shell;
-        if (remotePet.edge) localPet.edge = remotePet.edge;
-
-        const adv = localPet.level >= 15 ? ['神圣降世', '宇宙'] : localPet.level >= 10 ? ['星河守护者', '星芒'] : localPet.level >= 5 ? ['湖畔学徒', '晨露'] : ['萌新草龟', '微光'];
-        localPet.title = adv[0];
-        localPet.aura = adv[1];
-      });
-
-      // 3. 智能合并总禅意值与时间戳 (基于最新交易时间戳 LWW 仲裁，防止扣减被覆写回滚)
+      // 2. 智能合并总禅意值与时间戳 (基于最新交易时间戳 LWW 仲裁，防止扣减被覆写回滚)
       let mergedZen = state.zen;
       let mergedZenUpdatedAt = state.zenUpdatedAt || 0;
       const incomingZenUpdatedAt = incoming.zenUpdatedAt || 0;
