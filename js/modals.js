@@ -858,37 +858,52 @@
 
   function showMessenger() {
     const lettersList = Array.isArray(state.letters) ? state.letters : [];
-    const mailItemsHtml = lettersList.slice().reverse().map(letter => {
-      const isMe = letter.senderId === state.user.id || letter.from === '我';
-      const senderAvatar = escapeHTML(letter.senderAvatar || (isMe ? state.user.avatar : '💌'));
-      const senderName = escapeHTML(letter.senderName || (isMe ? (state.user.name + ' (我)') : (letter.from || '远方的共养者')));
-      const badgeClass = isMe ? 'letter-me' : 'letter-partner';
-      const dateDisplay = formatLetterDate(letter);
-      const fullDateTitle = letter.timestamp ? new Date(letter.timestamp).toLocaleString('zh-CN') : (letter.time || '');
+    const mailItemsHtml = lettersList.length > 0
+      ? lettersList.slice().reverse().map(letter => {
+        const isMe = letter.senderId === state.user.id || letter.from === '我';
+        const senderAvatar = escapeHTML(letter.senderAvatar || (isMe ? state.user.avatar : '💌'));
+        const senderName = escapeHTML(letter.senderName || (isMe ? (state.user.name + ' (我)') : (letter.from || '远方的共养者')));
+        const dateDisplay = formatLetterDate(letter);
+        const fullDateTitle = letter.timestamp ? new Date(letter.timestamp).toLocaleString('zh-CN') : (letter.time || '');
 
-      return `
-        <div class="chat-message-row ${isMe ? 'chat-me' : 'chat-partner'}">
-          <div class="chat-avatar-box">
-            <span class="chat-avatar">${senderAvatar}</span>
-          </div>
-          <div class="chat-content-wrap">
-            <div class="chat-meta">
-              <span class="chat-sender-name">${senderName}</span>
-              <span class="chat-sender-badge">${isMe ? '我 🕊️' : '共养伙伴 💌'}</span>
-              <small class="chat-time-badge" title="${escapeHTML(fullDateTitle)}">📅 ${escapeHTML(dateDisplay)}</small>
+        return `
+          <div class="chat-message-row ${isMe ? 'chat-me' : 'chat-partner'}" data-letter-id="${escapeHTML(letter.id || '')}">
+            <div class="chat-avatar-box">
+              <span class="chat-avatar">${senderAvatar}</span>
             </div>
-            <div class="chat-bubble">
-              <p>${escapeHTML(letter.body)}</p>
+            <div class="chat-content-wrap">
+              <div class="chat-meta">
+                <span class="chat-sender-name">${senderName}</span>
+                <span class="chat-sender-badge">${isMe ? '我 🕊️' : '共养伙伴 💌'}</span>
+                <small class="chat-time-badge" title="${escapeHTML(fullDateTitle)}">📅 ${escapeHTML(dateDisplay)}</small>
+              </div>
+              <div class="chat-bubble-container">
+                <div class="chat-bubble">
+                  <p>${escapeHTML(letter.body)}</p>
+                </div>
+                <button class="chat-del-btn" data-del-id="${escapeHTML(letter.id || '')}" title="删除此条消息">×</button>
+              </div>
             </div>
           </div>
+        `;
+      }).join('')
+      : `
+        <div class="empty-mail-hint">
+          <span>📭</span>
+          <b>暂无历史信件</b>
+          <small>在下方写下心意，让飞鸽送往远方的湖畔吧~</small>
         </div>
       `;
-    }).join('');
 
     modal(`
       <button class="modal-close" data-close>×</button>
-      <h2>飞鸽传书</h2>
-      <p class="modal-subtitle">频道 ${escapeHTML(state.channel)} · 把一小片心意送到远方的湖畔。</p>
+      <div class="messenger-header-row">
+        <div>
+          <h2>飞鸽传书</h2>
+          <p class="modal-subtitle">频道 ${escapeHTML(state.channel)} · 把一小片心意送到远方的湖畔。</p>
+        </div>
+        ${lettersList.length > 0 ? '<button class="clear-letters-btn" id="clearLettersBtn" title="清空当前频道的历史消息记录">🗑️ 清空历史</button>' : ''}
+      </div>
       <div class="mail-list">${mailItemsHtml}</div>
       <div class="messenger-sender-bar">
         <div class="current-sender-info">
@@ -905,6 +920,40 @@
         <button class="modal-primary" id="sendLetter">寄出</button>
       </div>
     `);
+
+    // 清空当前频道的所有历史信件
+    const clearBtn = $('#clearLettersBtn');
+    if (clearBtn) {
+      clearBtn.onclick = () => {
+        if (confirm(`确定要清空当前频道【${state.channel}】的所有历史信件记录吗？`)) {
+          state.letters = [];
+          if (state.channelLetters) {
+            state.channelLetters[state.channel] = [];
+          }
+          persist();
+          render();
+          showMessenger();
+          toast('🧹 历史消息已清空', `频道【${state.channel}】的历史信件已全部清除。`);
+        }
+      };
+    }
+
+    // 单条消息删除
+    $$('.chat-del-btn').forEach(delBtn => {
+      delBtn.onclick = (e) => {
+        e.stopPropagation();
+        const letterId = delBtn.getAttribute('data-del-id');
+        if (!letterId) return;
+        state.letters = (state.letters || []).filter(l => (l.id || '') !== letterId);
+        if (state.channelLetters && state.channelLetters[state.channel]) {
+          state.channelLetters[state.channel] = state.letters;
+        }
+        persist();
+        render();
+        showMessenger();
+        toast('🗑️ 消息已删除', '已成功移除该条信件。');
+      };
+    });
 
     $('#editMessengerProfile').onclick = () => {
       showUserProfileModal();

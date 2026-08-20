@@ -1113,6 +1113,106 @@
   align-items: flex-start;
   width: 100%;
   box-sizing: border-box;
+  position: relative;
+}
+
+.chat-bubble-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chat-me .chat-bubble-container {
+  flex-direction: row-reverse;
+}
+
+.chat-del-btn {
+  opacity: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+  font-size: 14px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.chat-message-row:hover .chat-del-btn {
+  opacity: 0.85;
+}
+
+.chat-del-btn:hover {
+  opacity: 1 !important;
+  background: rgba(239, 68, 68, 0.6);
+  color: #ffffff;
+  transform: scale(1.15);
+}
+
+.messenger-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.messenger-header-row h2 {
+  margin: 0 0 4px 0;
+}
+
+.clear-letters-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.16);
+  border: 1px solid rgba(248, 113, 113, 0.38);
+  color: #fca5a5;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.clear-letters-btn:hover {
+  background: rgba(239, 68, 68, 0.4);
+  border-color: rgba(248, 113, 113, 0.7);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.empty-mail-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 12px;
+  text-align: center;
+  color: #94a3b8;
+  gap: 6px;
+}
+
+.empty-mail-hint span {
+  font-size: 32px;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+}
+
+.empty-mail-hint b {
+  font-size: 14px;
+  color: #e2e8f0;
+}
+
+.empty-mail-hint small {
+  font-size: 12px;
+  color: #94a3b8;
 }
 
 /* 1. 对方发信 (居左显示) */
