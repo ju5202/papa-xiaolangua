@@ -791,6 +791,44 @@
     };
   }
 
+  function formatLetterDate(letter) {
+    let d = null;
+    if (letter.timestamp && !isNaN(Number(letter.timestamp))) {
+      d = new Date(Number(letter.timestamp));
+    } else if (letter.time) {
+      const parsed = new Date(letter.time);
+      if (!isNaN(parsed.getTime())) {
+        d = parsed;
+      }
+    }
+
+    if (!d) {
+      return letter.time || '刚刚';
+    }
+
+    const now = new Date();
+    const isSameYear = d.getFullYear() === now.getFullYear();
+    const isToday = isSameYear && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const isYesterday = isSameYear && d.getMonth() === yesterday.getMonth() && d.getDate() === yesterday.getDate();
+
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    const timeStr = `${hours}:${minutes}`;
+
+    if (isToday) {
+      return `今天 ${timeStr}`;
+    } else if (isYesterday) {
+      return `昨天 ${timeStr}`;
+    } else if (isSameYear) {
+      return `${d.getMonth() + 1}月${d.getDate()}日 ${timeStr}`;
+    } else {
+      return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ${timeStr}`;
+    }
+  }
+
   function showMessenger() {
     const lettersList = Array.isArray(state.letters) ? state.letters : [];
     const mailItemsHtml = lettersList.slice().reverse().map(letter => {
@@ -798,16 +836,25 @@
       const senderAvatar = escapeHTML(letter.senderAvatar || (isMe ? state.user.avatar : '💌'));
       const senderName = escapeHTML(letter.senderName || (isMe ? (state.user.name + ' (我)') : (letter.from || '远方的共养者')));
       const badgeClass = isMe ? 'letter-me' : 'letter-partner';
+      const dateDisplay = formatLetterDate(letter);
+      const fullDateTitle = letter.timestamp ? new Date(letter.timestamp).toLocaleString('zh-CN') : (letter.time || '');
+
       return `
-        <article class="letter ${badgeClass}">
-          <div class="letter-header">
-            <span class="letter-avatar-badge">${senderAvatar}</span>
-            <b>${senderName}</b>
-            <span class="sender-identity-tag">${isMe ? '我 🕊️' : '共养伙伴 💌'}</span>
-            <small>${escapeHTML(letter.time || '刚刚')}</small>
+        <div class="chat-message-row ${isMe ? 'chat-me' : 'chat-partner'}">
+          <div class="chat-avatar-box">
+            <span class="chat-avatar">${senderAvatar}</span>
           </div>
-          <p>${escapeHTML(letter.body)}</p>
-        </article>
+          <div class="chat-content-wrap">
+            <div class="chat-meta">
+              <span class="chat-sender-name">${senderName}</span>
+              <span class="chat-sender-badge">${isMe ? '我 🕊️' : '共养伙伴 💌'}</span>
+              <small class="chat-time-badge" title="${escapeHTML(fullDateTitle)}">📅 ${escapeHTML(dateDisplay)}</small>
+            </div>
+            <div class="chat-bubble">
+              <p>${escapeHTML(letter.body)}</p>
+            </div>
+          </div>
+        </div>
       `;
     }).join('');
 
@@ -840,14 +887,21 @@
       const input = $('#letterInput');
       const body = input ? input.value.trim() : '';
       if (!body) return;
-      const nowStr = new Intl.DateTimeFormat('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
+
+      const now = new Date();
+      const month = now.getMonth() + 1;
+      const day = now.getDate();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const fullDateStr = `${month}月${day}日 ${hours}:${minutes}`;
+
       const newLetter = {
         id: `msg_${Date.now()}_${Math.random().toString(16).slice(2, 6)}`,
         senderId: state.user.id,
         senderName: state.user.name,
         senderAvatar: state.user.avatar,
         body,
-        time: nowStr,
+        time: fullDateStr,
         timestamp: Date.now()
       };
       if (!Array.isArray(state.letters)) state.letters = [];
