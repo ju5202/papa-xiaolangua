@@ -869,7 +869,6 @@
   let state = loadState();
   let currentHabitatFilter = 'all';
   let isDecorEditMode = false;
-  let broadcast;
   let focusTimer;
   let currentModal = '';
 
