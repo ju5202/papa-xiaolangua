@@ -67,6 +67,18 @@
     // 仅过滤来自本地自身的广播回环，正常接收远方伙伴的数据
     if (data.senderId && data.senderId === state.user.id) return;
 
+    // 飞鸽传书/短信 送达确认回执 (Delivery Receipt ACK)
+    if (data.type === 'letter_delivered') {
+      if (typeof triggerTurtleDeliveryCelebration === 'function') {
+        triggerTurtleDeliveryCelebration({
+          isSenderAck: true,
+          senderName: data.senderName,
+          senderAvatar: data.senderAvatar
+        });
+      }
+      return;
+    }
+
     // 棋阁对弈动作实时同步
     if (data.type === 'game_action') {
       if (typeof GamesArena !== 'undefined') {
@@ -251,7 +263,17 @@
         const senderName = escapeHTML(newestLetter.senderName || '共养伙伴');
         const senderAvatar = escapeHTML(newestLetter.senderAvatar || '💌');
         const preview = newestLetter.body.length > 22 ? newestLetter.body.slice(0, 22) + '...' : newestLetter.body;
-        toast(`✉ 收到来自 ${senderAvatar} ${senderName} 的来信`, `“${escapeHTML(preview)}”`);
+
+        // 向发信方返回已成功接收的 ACK 确认包
+        broadcastDeliveryAck(newestLetter.id, newestLetter.senderId, state.user.name, state.user.avatar);
+
+        // 接收方本地的乌龟也欢快跳舞庆祝新信息送达
+        if (typeof triggerTurtleDeliveryCelebration === 'function') {
+          triggerTurtleDeliveryCelebration({ isSenderAck: false, senderName, senderAvatar });
+        } else {
+          toast(`✉ 收到来自 ${senderAvatar} ${senderName} 的来信`, `“${escapeHTML(preview)}”`);
+        }
+
         if (currentModal && $('#letterInput')) {
           showMessenger();
         }
@@ -274,6 +296,23 @@
     } else {
       clearTimeout(syncTimer);
       syncTimer = setTimeout(broadcastSyncPacket, 280);
+    }
+  }
+
+  function broadcastDeliveryAck(letterId, recipientId, senderName, senderAvatar) {
+    const packet = {
+      type: 'letter_delivered',
+      letterId,
+      recipientId,
+      senderId: state.user.id,
+      senderName: senderName || state.user.name,
+      senderAvatar: senderAvatar || state.user.avatar,
+      timestamp: Date.now()
+    };
+    broadcast?.postMessage(packet);
+    if (mqttClient && mqttClient.connected) {
+      const topic = `papa-pumpkin-sanctuary/channel/${state.channel}`;
+      mqttClient.publish(topic, JSON.stringify(packet), { qos: 0 });
     }
   }
 

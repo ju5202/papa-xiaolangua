@@ -10,7 +10,6 @@ let leftCompanionWin = null;
 let tray;
 let compact = false;
 let compactBounds = '';
-let taskbarProbeInFlight;
 let keyListenerProc;
 let isBossHidden = false;
 const execFileAsync = promisify(execFile);
@@ -22,19 +21,52 @@ process.on('uncaughtException', (error) => {
   throw error;
 });
 
-async function readTaskbarLayout() {
+let taskbarProbeInFlight;
+let cachedTaskbarLayout = null;
+let lastTaskbarProbeTime = 0;
+const TASKBAR_CACHE_TTL_MS = 2000; // 2秒有效缓存，兼顾极速响应与防 CPU 尖刺
+
+function getWindowHwnd(w) {
+  if (!w || w.isDestroyed()) return '0';
+  try {
+    const handle = w.getNativeWindowHandle();
+    if (process.arch === 'x64' || process.arch === 'arm64') {
+      return handle.readBigInt64LE().toString();
+    }
+    return handle.readInt32LE().toString();
+  } catch {
+    return '0';
+  }
+}
+
+async function readTaskbarLayout(force = false) {
+  const now = Date.now();
+  if (!force && cachedTaskbarLayout && (now - lastTaskbarProbeTime) < TASKBAR_CACHE_TTL_MS) {
+    return cachedTaskbarLayout;
+  }
   if (taskbarProbeInFlight) return taskbarProbeInFlight;
   if (process.platform !== 'win32') return null;
+
   taskbarProbeInFlight = (async () => {
     const source = path.join(__dirname, 'taskbar-layout.ps1');
     const target = path.join(app.getPath('userData'), 'taskbar-layout.ps1');
     const script = fs.readFileSync(source, 'utf8');
     if (!fs.existsSync(target) || fs.readFileSync(target, 'utf8') !== script) fs.writeFileSync(target, script, 'utf8');
+
+    const winHwnd = compact ? getWindowHwnd(win) : '0';
+    const leftWinHwnd = (compact && leftCompanionWin) ? getWindowHwnd(leftCompanionWin) : '0';
+
     const { stdout } = await execFileAsync('powershell.exe', [
-      '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', target
-    ], { windowsHide: true, timeout: 10000, maxBuffer: 64 * 1024 });
-    return JSON.parse(stdout.trim());
-  })().catch(() => null).finally(() => { taskbarProbeInFlight = undefined; });
+      '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', target, winHwnd, leftWinHwnd
+    ], { windowsHide: true, timeout: 5000, maxBuffer: 64 * 1024 });
+    const parsed = JSON.parse(stdout.trim());
+    if (parsed && parsed.taskbar) {
+      cachedTaskbarLayout = parsed;
+      lastTaskbarProbeTime = Date.now();
+    }
+    return parsed;
+  })().catch(() => cachedTaskbarLayout).finally(() => { taskbarProbeInFlight = undefined; });
+
   return taskbarProbeInFlight;
 }
 
@@ -112,8 +144,9 @@ function calculateTaskbarWings(taskbar, tray, appButtons) {
       if (typeof b.left !== 'number' || typeof b.right !== 'number' || isNaN(b.left) || isNaN(b.right)) continue;
       // 1. 排除托盘内部及托盘右侧区域的按钮（如“显示桌面”等）
       if (b.left >= trayLeft - 10 || b.right > trayLeft + 8) continue;
-      // 2. 排除异常超宽的容器按钮
-      if ((b.right - b.left) > (taskbarRight - taskbarLeft) * 0.7) continue;
+      // 2. 排除异常超宽的容器按钮（正常的图标通常在 24px - 260px 之间）
+      const btnWidth = b.right - b.left;
+      if (btnWidth <= 4 || btnWidth > (taskbarRight - taskbarLeft) * 0.7) continue;
 
       iconMinLeft = Math.min(iconMinLeft, b.left);
       iconMaxRight = Math.max(iconMaxRight, b.right);
@@ -124,8 +157,8 @@ function calculateTaskbarWings(taskbar, tray, appButtons) {
   const buildNum = parseInt(release.split('.')[2] || '0', 10);
   const isWin11OrLater = buildNum >= 22000;
 
-  // 若未检测到有效应用图标，或图标右边界过于贴近托盘（避免误判容器为图标）
-  if (iconMinLeft >= iconMaxRight || isNaN(iconMinLeft) || iconMaxRight >= trayLeft - 60) {
+  // 若未检测到有效应用图标
+  if (iconMinLeft >= iconMaxRight || isNaN(iconMinLeft) || isNaN(iconMaxRight)) {
     if (isWin11OrLater) {
       // Windows 11 默认居中预估
       const center = (taskbarLeft + taskbarRight) / 2;
@@ -148,9 +181,9 @@ function calculateTaskbarWings(taskbar, tray, appButtons) {
     const endX = Math.min(taskbarRight - 4, trayLeft - 8);
     let width = endX - startX;
 
-    // 确保宽度至少有基础空间（>= 240px），若不足则自适应向左调整或平铺安全区域
-    if (width < 240) {
-      const maxAvailable = Math.max(240, endX - (taskbarLeft + 48));
+    // 确保宽度至少有基础空间（>= 200px），若不足则自适应向左调整或平铺安全区域
+    if (width < 200) {
+      const maxAvailable = Math.max(200, endX - (taskbarLeft + 48));
       width = Math.min(420, maxAvailable);
       startX = Math.max(taskbarLeft + 48, endX - width);
     }
@@ -166,15 +199,15 @@ function calculateTaskbarWings(taskbar, tray, appButtons) {
 
   // 居中布局模式（Win11 默认）：图标在中间，左右两侧分别有可用空间
   const leftStart = taskbarLeft + 4;
-  const leftEnd = Math.max(leftStart + 120, iconMinLeft - 8);
+  const leftEnd = Math.max(leftStart + 80, iconMinLeft - 8);
   const leftWidth = leftEnd - leftStart;
 
-  const rightStart = Math.min(taskbarRight - 160, iconMaxRight + 8);
+  const rightStart = Math.min(taskbarRight - 120, iconMaxRight + 8);
   const rightEnd = Math.min(taskbarRight - 4, trayLeft - 8);
   const rightWidth = rightEnd - rightStart;
 
-  // 左右两侧均有足够空间（>= 120px）时采用双翼模式
-  if (leftWidth >= 120 && rightWidth >= 120) {
+  // 左右两侧均有足够空间（>= 100px）时采用双翼模式
+  if (leftWidth >= 100 && rightWidth >= 100) {
     return {
       mode: 'dual',
       left: { x: Math.round(leftStart), width: Math.round(leftWidth) },
@@ -184,7 +217,7 @@ function calculateTaskbarWings(taskbar, tray, appButtons) {
 
   // 若某侧空间不足，则降级为单槽位展示在较宽的一侧
   const chosenStart = rightWidth >= leftWidth ? rightStart : leftStart;
-  const chosenWidth = Math.max(240, Math.max(rightWidth, leftWidth));
+  const chosenWidth = Math.max(200, Math.max(rightWidth, leftWidth));
   return {
     mode: 'unified',
     single: {
@@ -194,9 +227,14 @@ function calculateTaskbarWings(taskbar, tray, appButtons) {
   };
 }
 
-async function placeInTaskbarGap() {
+let currentWidgetMode = null;
+
+async function placeInTaskbarGap(force = false) {
+  if (!win || win.isDestroyed() || !compact || isBossHidden) return false;
+  if (isModalExpanded) return false;
+
   const display = screen.getPrimaryDisplay();
-  const layout = await readTaskbarLayout();
+  const layout = await readTaskbarLayout(force);
   if (!layout?.taskbar || !layout?.tray) return false;
 
   const rawTaskbar = layout.taskbar;
@@ -233,37 +271,58 @@ async function placeInTaskbarGap() {
   const wings = calculateTaskbarWings(taskbar, tray, appButtons);
   const height = Math.max(34, taskbar.bottom - taskbar.top);
   const y = taskbar.top;
+  const modeChanged = currentWidgetMode !== wings.mode;
+  currentWidgetMode = wings.mode;
 
   if (wings.mode === 'dual') {
     // 居中/双翼模式：双槽位同时展示！
+    const rightTarget = { x: wings.right.x, y, width: wings.right.width, height };
+    const leftTarget = { x: wings.left.x, y, width: wings.left.width, height };
+
     // 1. 右翼主挂件
-    win.setMinimumSize(120, 32);
+    win.setMinimumSize(100, 32);
     win.setResizable(false);
-    win.setBounds({ x: wings.right.x, y, width: wings.right.width, height }, true);
+    const curRight = win.getBounds();
+    const rightChanged = modeChanged || curRight.x !== rightTarget.x || curRight.y !== rightTarget.y || curRight.width !== rightTarget.width || curRight.height !== rightTarget.height;
+    if (rightChanged) {
+      win.setBounds(rightTarget, false);
+    }
     if (!win.isVisible()) win.showInactive();
     win.setAlwaysOnTop(true, 'screen-saver');
-    if (!win.webContents.isDestroyed()) {
+    win.moveTop();
+    if (rightChanged && !win.webContents.isDestroyed()) {
       win.webContents.send('desktop:compact', true, 'right');
     }
 
     // 2. 左翼伴侣挂件
     const leftWin = makeLeftCompanionWindow();
-    leftWin.setMinimumSize(120, 32);
+    leftWin.setMinimumSize(100, 32);
     leftWin.setResizable(false);
-    leftWin.setBounds({ x: wings.left.x, y, width: wings.left.width, height }, true);
+    const curLeft = leftWin.getBounds();
+    const leftChanged = modeChanged || curLeft.x !== leftTarget.x || curLeft.y !== leftTarget.y || curLeft.width !== leftTarget.width || curLeft.height !== leftTarget.height;
+    if (leftChanged) {
+      leftWin.setBounds(leftTarget, false);
+    }
     if (!leftWin.isVisible()) leftWin.showInactive();
     leftWin.setAlwaysOnTop(true, 'screen-saver');
-    if (!leftWin.webContents.isDestroyed()) {
+    leftWin.moveTop();
+    if (leftChanged && !leftWin.webContents.isDestroyed()) {
       leftWin.webContents.send('desktop:compact', true, 'left');
     }
   } else {
     // 靠左单槽位模式（Windows 10 或靠左对齐）：单个挂件平铺在可用区域
-    win.setMinimumSize(120, 32);
+    const singleTarget = { x: wings.single.x, y, width: wings.single.width, height };
+    win.setMinimumSize(100, 32);
     win.setResizable(false);
-    win.setBounds({ x: wings.single.x, y, width: wings.single.width, height }, true);
+    const curSingle = win.getBounds();
+    const singleChanged = modeChanged || curSingle.x !== singleTarget.x || curSingle.y !== singleTarget.y || curSingle.width !== singleTarget.width || curSingle.height !== singleTarget.height;
+    if (singleChanged) {
+      win.setBounds(singleTarget, false);
+    }
     if (!win.isVisible()) win.showInactive();
     win.setAlwaysOnTop(true, 'screen-saver');
-    if (!win.webContents.isDestroyed()) {
+    win.moveTop();
+    if (singleChanged && !win.webContents.isDestroyed()) {
       win.webContents.send('desktop:compact', true, 'unified');
     }
     if (leftCompanionWin && !leftCompanionWin.isDestroyed()) {
@@ -311,15 +370,26 @@ async function toggleCompact(force) {
     win.setAlwaysOnTop(true, 'screen-saver');
     win.setSkipTaskbar(true);
     try { win.setFocusable(false); } catch {}
-    const placed = await placeInTaskbarGap();
+    const placed = await placeInTaskbarGap(true);
     if (!placed) {
       const { workArea } = screen.getPrimaryDisplay();
       win.setBounds({ x: workArea.x + workArea.width - 360, y: workArea.y + workArea.height - 42, width: 350, height: 38 }, true);
     }
   } else {
     compactBounds = '';
+    currentWidgetMode = null;
     if (leftCompanionWin && !leftCompanionWin.isDestroyed()) {
       leftCompanionWin.hide();
+    }
+    if (process.platform === 'win32' && win) {
+      const winHwnd = getWindowHwnd(win);
+      if (winHwnd !== '0') {
+        execFile('powershell.exe', [
+          '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+          '-Command',
+          `Add-Type -TypeDefinition '[DllImport("user32.dll", EntryPoint="SetWindowLongPtr")] public static extern IntPtr SetWindowLongPtr64(IntPtr h, int n, IntPtr v); [DllImport("user32.dll", EntryPoint="SetWindowLong")] public static extern IntPtr SetWindowLong32(IntPtr h, int n, IntPtr v); public class U { public static void Detach(IntPtr h) { if (IntPtr.Size == 8) SetWindowLongPtr64(h, -8, IntPtr.Zero); else SetWindowLong32(h, -8, IntPtr.Zero); } }'; [U]::Detach([IntPtr]::new(${winHwnd}))`
+        ], { windowsHide: true }, () => {});
+      }
     }
     try { win.setFocusable(true); } catch {}
     win.setAlwaysOnTop(false);
@@ -342,7 +412,7 @@ function toggleBossKey() {
     if (win && !win.isDestroyed()) {
       win.show();
       if (compact) {
-        placeInTaskbarGap();
+        placeInTaskbarGap(true);
       }
     }
   }
@@ -401,12 +471,20 @@ function startKeyListener() {
 
 function reassertTopmost() {
   if (!compact || isBossHidden) return;
+  if (isModalExpanded) {
+    if (win && !win.isDestroyed()) {
+      win.moveTop();
+    }
+    return;
+  }
   if (win && !win.isDestroyed()) {
     win.setAlwaysOnTop(true, 'screen-saver');
+    win.moveTop();
     try { win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true }); } catch {}
   }
-  if (leftCompanionWin && !leftCompanionWin.isDestroyed()) {
+  if (leftCompanionWin && !leftCompanionWin.isDestroyed() && leftCompanionWin.isVisible()) {
     leftCompanionWin.setAlwaysOnTop(true, 'screen-saver');
+    leftCompanionWin.moveTop();
     try { leftCompanionWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true }); } catch {}
   }
 }
@@ -425,17 +503,25 @@ app.whenReady().then(() => {
     console.error('Failed to register Boss Key Alt+W:', err);
   }
 
-  // 极速心跳：确保被任务栏点击时 0 延迟保持最顶层
+  // 极速心跳：确保被外部程序弹窗/任务栏点击时 0 延迟保持最顶层
   setInterval(() => {
     if (compact && !isBossHidden) {
       reassertTopmost();
     }
-  }, 1200);
+  }, 800);
 
-  // 定期检测任务栏应用图标增删自适应重排
-  setInterval(() => { if (compact && !isBossHidden) placeInTaskbarGap(); }, 12000);
-  screen.on('display-metrics-changed', () => { if (compact && !isBossHidden) placeInTaskbarGap(); });
+  // 定期检测任务栏应用图标增删自适应重排（2.5秒极速响应）
+  setInterval(() => {
+    if (compact && !isBossHidden && !isModalExpanded) {
+      placeInTaskbarGap(true);
+    }
+  }, 2500);
+
+  screen.on('display-metrics-changed', () => { if (compact && !isBossHidden) placeInTaskbarGap(true); });
   app.on('browser-window-blur', () => {
+    setTimeout(reassertTopmost, 30);
+  });
+  app.on('browser-window-focus', () => {
     setTimeout(reassertTopmost, 30);
   });
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) makeWindow(); else win.show(); });
@@ -478,13 +564,18 @@ async function setModalActive(isOpen) {
     win.show();
     win.focus();
   } else {
-    // 弹窗关闭：可靠重新对齐并收回为任务栏全景水道
-    win.setMinimumSize(120, 32);
+    // 弹窗关闭：0延迟立即收回为任务栏全景水道
+    win.setMinimumSize(100, 32);
     win.setResizable(false);
-    savedCompactBounds = null;
     try { win.setFocusable(false); } catch {}
-    await placeInTaskbarGap();
+    if (savedCompactBounds && savedCompactBounds.height <= 60) {
+      win.setBounds(savedCompactBounds, false);
+      savedCompactBounds = null;
+    } else {
+      placeInTaskbarGap(true);
+    }
     win.setAlwaysOnTop(true, 'screen-saver');
+    win.moveTop();
   }
 }
 

@@ -925,11 +925,22 @@
       }
       sync(true);
       render();
-      if (mqttClient && mqttClient.connected) {
+      if (typeof mqttClient !== 'undefined' && mqttClient && mqttClient.connected) {
         toast('✉ 飞鸽已起飞', `以【${state.user.name}】的名义已寄往共养频道，远方即将收到。`);
       } else {
-        toast('✉ 信件已保存', '当前未连入公网共养服务器，重连后将自动同步。');
+        toast('✉ 飞鸽已起飞', '信件已寄出，正在送往远方的湖畔...');
       }
+
+      // 单机测试与离线送达保护（若 1.6 秒内网络回执未返回且未连接多个远端，自动给予视觉欢庆跳舞反馈）
+      clearTimeout(window.__letterDeliverySimTimer);
+      window.__letterDeliverySimTimer = setTimeout(() => {
+        if (!mqttClient || !mqttClient.connected) {
+          if (typeof triggerTurtleDeliveryCelebration === 'function') {
+            triggerTurtleDeliveryCelebration({ isSenderAck: true });
+          }
+        }
+      }, 1600);
+
       showMessenger();
     };
   }

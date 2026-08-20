@@ -1165,3 +1165,91 @@ body.widget-body .app-splash,
   }
 }
 
+/* ==========================================================================
+   乌龟欢庆跳舞动画 (Message Delivered Dance Animation)
+   ========================================================================== */
+.turtle.dancing {
+  animation: turtle-dance-party 0.52s ease-in-out infinite alternate !important;
+  z-index: 10 !important;
+  filter: drop-shadow(0 0 14px rgba(255, 215, 0, 0.85)) drop-shadow(0 0 6px var(--glow, #74ecc0)) !important;
+}
+
+.widget-turtles .turtle.dancing {
+  animation: widget-turtle-dance 0.42s ease-in-out infinite alternate !important;
+}
+
+@keyframes turtle-dance-party {
+  0% {
+    transform: translateY(0) rotate(-10deg) scale(1.1);
+  }
+  50% {
+    transform: translateY(-28px) rotate(0deg) scale(1.22);
+  }
+  100% {
+    transform: translateY(-8px) rotate(12deg) scale(1.15);
+  }
+}
+
+@keyframes widget-turtle-dance {
+  0% {
+    transform: translateY(-50%) rotate(-14deg) scale(1.25);
+  }
+  50% {
+    transform: translateY(-85%) rotate(0deg) scale(1.38);
+  }
+  100% {
+    transform: translateY(-38%) rotate(14deg) scale(1.25);
+  }
+}
+
+/* 欢庆音符与爱心气泡粒子 */
+.dance-note-particle {
+  position: absolute;
+  pointer-events: none;
+  font-size: 14px;
+  font-weight: bold;
+  z-index: 15;
+  user-select: none;
+  animation: dance-note-float 1.2s ease-out forwards;
+}
+
+@keyframes dance-note-float {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(0.6) rotate(0deg);
+  }
+  50% {
+    opacity: 0.95;
+    transform: translate(calc(-50% + var(--dx, 8px)), -24px) scale(1.25) rotate(var(--rot, 15deg));
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--dx, 16px)), -44px) scale(0.9) rotate(var(--rot, 30deg));
+  }
+}
+
+/* 消息送达任务栏提示高亮 */
+.widget-delivery-glow {
+  color: #fef08a !important;
+  text-shadow: 0 0 8px rgba(250, 204, 21, 0.8), 0 0 14px rgba(234, 179, 8, 0.6) !important;
+  animation: delivery-text-pulse 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes delivery-text-pulse {
+  0% { transform: scale(0.98); opacity: 0.85; }
+  100% { transform: scale(1.05); opacity: 1; filter: brightness(1.2); }
+}
+
+.widget-btn.pulse-delivered {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.4), rgba(245, 158, 11, 0.55)) !important;
+  border-color: rgba(253, 224, 71, 0.9) !important;
+  box-shadow: 0 0 12px rgba(250, 204, 21, 0.7) !important;
+  animation: widget-btn-bounce 0.6s ease-in-out 3;
+}
+
+@keyframes widget-btn-bounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.18); }
+}
+
+

@@ -508,6 +508,34 @@ const AmbientEngine = (() => {
     }
   }
 
+  function playDeliveryChime() {
+    try {
+      const audioCtx = getContext();
+      if (!audioCtx) return;
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume().catch(() => {});
+      }
+      const notes = [659.25, 830.61, 987.77, 1318.51]; // E5, G#5, B5, E6
+      const startTime = audioCtx.currentTime;
+      notes.forEach((freq, index) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, startTime + index * 0.12);
+
+        gain.gain.setValueAtTime(0, startTime + index * 0.12);
+        gain.gain.linearRampToValueAtTime(0.28, startTime + index * 0.12 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + index * 0.12 + 0.6);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(startTime + index * 0.12);
+        osc.stop(startTime + index * 0.12 + 0.65);
+      });
+    } catch (e) {}
+  }
+
   return {
     getTracks: () => TRACKS,
     getCurrentTrack: () => TRACKS.find(t => t.id === currentTrackId) || TRACKS[0],
@@ -517,6 +545,7 @@ const AmbientEngine = (() => {
     toggle,
     setVolume,
     updateUI,
+    playDeliveryChime,
     init: () => {
       if (typeof state !== 'undefined' && state.ambientTrack) {
         currentTrackId = state.ambientTrack;

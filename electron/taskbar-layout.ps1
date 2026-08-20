@@ -1,3 +1,8 @@
+param(
+  [string]$WinHwnd = "0",
+  [string]$LeftWinHwnd = "0"
+)
+
 # Returns the primary Windows taskbar geometry and the classic task-list / tray
 # descendants.  Electron itself only exposes the work area, not the taskbar's
 # child regions, so this small read-only probe lets the widget avoid the tray.
@@ -16,6 +21,27 @@ public static class TaskbarLayoutProbe {
   [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern int GetClassName(IntPtr hWnd, StringBuilder className, int maxCount);
   [DllImport("user32.dll")] public static extern bool EnumChildWindows(IntPtr hWndParent, EnumWindowsProc callback, IntPtr lParam);
 
+  [DllImport("user32.dll", EntryPoint = "SetWindowLongPtr")]
+  private static extern IntPtr SetWindowLongPtr64(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+
+  [DllImport("user32.dll", EntryPoint = "SetWindowLong")]
+  private static extern IntPtr SetWindowLong32(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+
+  public static IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong) {
+    if (IntPtr.Size == 8) return SetWindowLongPtr64(hWnd, nIndex, dwNewLong);
+    return SetWindowLong32(hWnd, nIndex, dwNewLong);
+  }
+
+  [DllImport("user32.dll")]
+  public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+  public static void AttachToTaskbar(IntPtr hWnd, IntPtr taskbarHandle) {
+    if (hWnd == IntPtr.Zero || taskbarHandle == IntPtr.Zero) return;
+    const int GWLP_HWNDPARENT = -8;
+    SetWindowLongPtr(hWnd, GWLP_HWNDPARENT, taskbarHandle);
+    SetWindowPos(hWnd, new IntPtr(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010 | 0x0040);
+  }
+
   public class WindowInfo { public string Class; public int Left; public int Top; public int Right; public int Bottom; }
   public static WindowInfo GetInfo(IntPtr hWnd) {
     if (hWnd == IntPtr.Zero) return null;
@@ -32,6 +58,21 @@ public static class TaskbarLayoutProbe {
 '@
 
 $taskbarHandle = [TaskbarLayoutProbe]::FindWindow('Shell_TrayWnd', $null)
+if ($null -eq $taskbarHandle -or $taskbarHandle -eq [IntPtr]::Zero) { exit 1 }
+
+if ($WinHwnd -ne "0" -and $WinHwnd -ne "") {
+  try {
+    $h = [IntPtr]::new([int64]$WinHwnd)
+    [TaskbarLayoutProbe]::AttachToTaskbar($h, $taskbarHandle)
+  } catch { }
+}
+if ($LeftWinHwnd -ne "0" -and $LeftWinHwnd -ne "") {
+  try {
+    $lh = [IntPtr]::new([int64]$LeftWinHwnd)
+    [TaskbarLayoutProbe]::AttachToTaskbar($lh, $taskbarHandle)
+  } catch { }
+}
+
 $taskbar = [TaskbarLayoutProbe]::GetInfo($taskbarHandle)
 if ($null -eq $taskbar) { exit 1 }
 $nodes = [TaskbarLayoutProbe]::GetDescendants($taskbarHandle)

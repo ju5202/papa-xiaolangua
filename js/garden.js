@@ -375,6 +375,25 @@
   function miniTurtleMarkup(pet) {
     return `<div class="mini-turtle ${pet.id === 'papa' ? 'mini-papa' : 'mini-pumpkin'}">${getTurtleSvg(pet.id, 'mini-svg')}</div>`;
   }
+
+  function widgetTurtleMarkup(pet) {
+    const dir = typeof pet.widgetDir === 'number' ? pet.widgetDir : (pet.id === 'pumpkin' ? -1 : 1);
+    const dirClass = dir === -1 ? 'face-left' : 'face-right';
+    const flipStyle = dir === 1 ? 'transform: scaleX(-1);' : 'transform: scaleX(1);';
+    const hatIcon = hatIcons[pet.equipment] || pet.equipment || '';
+    const wearable = pet.equipment ? `<span class="wearable">${hatIcon}</span>` : '';
+    const petClass = pet.id === 'papa' ? 'turtle-papa' : 'turtle-pumpkin';
+    const currentLeft = typeof pet.widgetX === 'number' ? pet.widgetX : (pet.id === 'papa' ? 18 : 78);
+
+    return `<div class="turtle ${petClass} swimming ${dirClass}" data-pet="${pet.id}" data-dir="${dir}" style="left:${currentLeft}%;top:50%;--glow:${pet.glow};">
+      <div class="aura"></div>
+      <div class="turtle-sprite" style="${flipStyle}">
+        ${getTurtleSvg(pet.id)}
+        ${wearable}
+      </div>
+      <span class="nameplate">${pet.name} · Lv.${pet.level}</span>
+    </div>`;
+  }
   function decorationMarkup(decor) {
     const isPondItem = decor.type === 'reeds' || decor.type === 'lily';
     const zoneAttr = isPondItem ? 'pond' : 'land';
@@ -519,7 +538,7 @@
     const papa = state.pets.papa, pumpkin = state.pets.pumpkin;
     $('#turtleLayer').innerHTML = turtleMarkup(papa) + turtleMarkup(pumpkin);
     if ($('#widgetTurtles')) {
-      $('#widgetTurtles').innerHTML = turtleMarkup(papa) + turtleMarkup(pumpkin);
+      $('#widgetTurtles').innerHTML = widgetTurtleMarkup(papa) + widgetTurtleMarkup(pumpkin);
       const pumpkinEl = $('#widgetTurtles .turtle[data-pet="pumpkin"]');
       const papaEl = $('#widgetTurtles .turtle[data-pet="papa"]');
       if (wingMode === 'left') {
@@ -987,44 +1006,55 @@
           }
         }
 
-        // 2. 任务栏自由往返游弋 AI（各自区域内自由往返，无需左右穿梭）
+        // 2. 任务栏专属平滑悠闲巡弋 AI
         const wEl = $(`#widgetTurtles .turtle[data-pet="${pet.id}"]`);
         if (wEl && wEl.style.display !== 'none') {
           if (typeof pet.widgetX !== 'number') pet.widgetX = (pet.id === 'papa' ? 18 : 78);
-          if (typeof pet.widgetTargetX !== 'number') pet.widgetTargetX = (pet.widgetX < 50 ? 86 : 12);
+          if (typeof pet.widgetTargetX !== 'number') pet.widgetTargetX = (pet.id === 'papa' ? 82 : 16);
           if (typeof pet.widgetDir !== 'number') pet.widgetDir = (pet.widgetTargetX >= pet.widgetX ? 1 : -1);
+          if (typeof pet.widgetState !== 'string') pet.widgetState = 'swimming';
 
-          pet.widgetTimer = (pet.widgetTimer || 20) - 1;
-
-          // 到达边界或定时刷新方向
-          if (pet.widgetX <= 7) {
-            pet.widgetDir = 1;
-            pet.widgetTargetX = 76 + Math.random() * 16;
-            pet.widgetTimer = 60 + Math.floor(Math.random() * 60);
-          } else if (pet.widgetX >= 91) {
-            pet.widgetDir = -1;
-            pet.widgetTargetX = 8 + Math.random() * 16;
-            pet.widgetTimer = 60 + Math.floor(Math.random() * 60);
-          } else if (pet.widgetTimer <= 0) {
-            // 定时切换往返目标
-            pet.widgetDir = pet.widgetDir === 1 ? -1 : 1;
-            pet.widgetTargetX = pet.widgetDir === 1 ? (76 + Math.random() * 16) : (8 + Math.random() * 16);
-            pet.widgetTimer = 80 + Math.floor(Math.random() * 80);
-          }
-
-          const wDist = pet.widgetTargetX - pet.widgetX;
-          if (Math.abs(wDist) > 0.3) {
-            const wSpeed = 0.24 + (pet.id === 'pumpkin' ? 0.04 : 0); // 悠闲轻快的往返游速
-            pet.widgetX += Math.sign(wDist) * Math.min(Math.abs(wDist), wSpeed);
-            pet.widgetDir = Math.sign(wDist);
+          if (pet.widgetState === 'resting') {
+            pet.widgetTimer = (pet.widgetTimer || 30) - 1;
+            if (pet.widgetTimer <= 0) {
+              pet.widgetState = 'swimming';
+              pet.widgetDir = pet.widgetX < 50 ? 1 : -1;
+              pet.widgetTargetX = pet.widgetDir === 1 ? (72 + Math.random() * 18) : (10 + Math.random() * 18);
+            }
           } else {
-            // 到达一侧目标点，掉头游往对侧
-            pet.widgetDir = pet.widgetX < 50 ? 1 : -1;
-            pet.widgetTargetX = pet.widgetDir === 1 ? (76 + Math.random() * 16) : (8 + Math.random() * 16);
-            pet.widgetTimer = 50 + Math.floor(Math.random() * 60);
+            const wDist = pet.widgetTargetX - pet.widgetX;
+            const wAbsDist = Math.abs(wDist);
+
+            if (wAbsDist > 0.8) {
+              const dirSign = wDist > 0 ? 1 : -1;
+              const wSpeed = 0.22 + (pet.id === 'pumpkin' ? 0.04 : 0);
+              pet.widgetX += dirSign * Math.min(wAbsDist, wSpeed);
+              pet.widgetDir = dirSign;
+
+              // 边界保护
+              if (pet.widgetX <= 6) {
+                pet.widgetX = 6;
+                pet.widgetState = 'resting';
+                pet.widgetTimer = 40 + Math.floor(Math.random() * 50);
+                pet.widgetDir = 1;
+                pet.widgetTargetX = 72 + Math.random() * 18;
+              } else if (pet.widgetX >= 92) {
+                pet.widgetX = 92;
+                pet.widgetState = 'resting';
+                pet.widgetTimer = 40 + Math.floor(Math.random() * 50);
+                pet.widgetDir = -1;
+                pet.widgetTargetX = 10 + Math.random() * 18;
+              }
+            } else {
+              // 到达目标点，短暂悠闲休整 2~3 秒后优雅折返
+              pet.widgetX = pet.widgetTargetX;
+              pet.widgetState = 'resting';
+              pet.widgetTimer = 40 + Math.floor(Math.random() * 60);
+              pet.widgetDir = pet.widgetX < 50 ? 1 : -1;
+            }
           }
 
-          // 始终保持在 6% ~ 92% 安全水域内
+          // 保持在 6% ~ 92% 安全水域内
           pet.widgetX = Math.max(6, Math.min(92, pet.widgetX));
 
           wEl.style.left = `${pet.widgetX}%`;
@@ -1134,4 +1164,88 @@
       setTimeout(() => spark.remove(), 1200);
     }
   }
+
+  let danceTimer = null;
+  let particleInterval = null;
+
+  function triggerTurtleDeliveryCelebration(opts = {}) {
+    const isSenderAck = opts.isSenderAck ?? true;
+    const senderName = escapeHTML(opts.senderName || '共养伙伴');
+    const senderAvatar = escapeHTML(opts.senderAvatar || '💌');
+
+    // 1. 播放欢庆水滴和弦音效
+    if (typeof AmbientEngine !== 'undefined' && AmbientEngine.playDeliveryChime) {
+      AmbientEngine.playDeliveryChime();
+    }
+
+    // 2. 找到任务栏挂件和庭院的所有乌龟元素并启动跳舞动画
+    const turtles = Array.from(document.querySelectorAll('.turtle, .mini-turtle'));
+    turtles.forEach(t => {
+      t.classList.add('dancing');
+    });
+
+    // 3. 任务栏与主界面状态高亮提示
+    const widgetMsg = $('#widgetMessage');
+    const origMsg = widgetMsg ? widgetMsg.textContent : '';
+    if (widgetMsg) {
+      widgetMsg.textContent = isSenderAck ? '💌 信件已送达对方！(｡♥‿♥｡)✨' : `💌 收到 ${senderAvatar} 的新来信！✨`;
+      widgetMsg.classList.add('widget-delivery-glow');
+    }
+
+    const mailBtn = $('#widgetMailBtn');
+    if (mailBtn) {
+      mailBtn.classList.add('pulse-delivered');
+    }
+
+    // 4. 发射连续漂浮的音符与爱心气泡粒子
+    const icons = ['♪', '♫', '💌', '✨', '💖', '🕊️', '🌸', '✦'];
+    const spawnParticles = () => {
+      const targets = Array.from(document.querySelectorAll('#widgetTurtles, #turtleLayer'));
+      targets.forEach(container => {
+        if (!container) return;
+        const rect = container.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return;
+
+        const particle = document.createElement('span');
+        particle.className = 'dance-note-particle';
+        particle.textContent = icons[Math.floor(Math.random() * icons.length)];
+        particle.style.left = `${15 + Math.random() * 70}%`;
+        particle.style.top = `${20 + Math.random() * 60}%`;
+        particle.style.setProperty('--dx', `${(Math.random() - 0.5) * 36}px`);
+        particle.style.setProperty('--rot', `${(Math.random() - 0.5) * 60}deg`);
+        particle.style.color = Math.random() > 0.5 ? '#fef08a' : '#a7f3d0';
+        container.appendChild(particle);
+        setTimeout(() => particle.remove(), 1200);
+      });
+    };
+
+    spawnParticles();
+    clearInterval(particleInterval);
+    particleInterval = setInterval(spawnParticles, 320);
+
+    // 5. 庭院全屏彩带金粉特效
+    createCelebrationSparkles();
+
+    // 6. 弹窗气泡与 Toast 提醒
+    if (isSenderAck) {
+      toast('✨ 飞鸽传书已成功送达！', '对方已成功接收到您的短信，帕帕与小南瓜正在为你欢快跳舞庆祝！🕊️');
+    } else {
+      toast(`✉ 收到来自 ${senderAvatar} ${senderName} 的新信息`, '快去飞鸽传书看看吧！');
+    }
+
+    // 7. 定时停止跳舞并恢复状态
+    clearTimeout(danceTimer);
+    danceTimer = setTimeout(() => {
+      clearInterval(particleInterval);
+      turtles.forEach(t => t.classList.remove('dancing'));
+      if (widgetMsg) {
+        widgetMsg.classList.remove('widget-delivery-glow');
+        widgetMsg.textContent = origMsg || '🌊 月泉游弋中...';
+      }
+      if (mailBtn) {
+        mailBtn.classList.remove('pulse-delivered');
+      }
+    }, 4800);
+  }
+
 
