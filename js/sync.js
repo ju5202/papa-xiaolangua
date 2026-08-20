@@ -112,7 +112,7 @@
         }
       });
 
-      // 2. 智能合并两只乌龟的经验、等级与状态 (双向 CRDT 合并，互不覆盖抹杀)
+      // 2. 智能合并两只乌龟的经验、等级、装扮与龟壳状态
       const mergedPets = { ...state.pets };
       ['papa', 'pumpkin'].forEach(petId => {
         const localPet = mergedPets[petId] || defaultState.pets[petId];
@@ -129,8 +129,9 @@
         localPet.hunger = Math.max(localPet.hunger || 0, remotePet.hunger || 0);
         localPet.happiness = Math.max(localPet.happiness || 0, remotePet.happiness || 0);
         localPet.clean = Math.max(localPet.clean || 0, remotePet.clean || 0);
-        if (remotePet.equipment) localPet.equipment = remotePet.equipment;
+        if (remotePet.equipment !== undefined) localPet.equipment = remotePet.equipment;
         if (remotePet.shell) localPet.shell = remotePet.shell;
+        if (remotePet.edge) localPet.edge = remotePet.edge;
 
         const adv = localPet.level >= 15 ? ['神圣降世', '宇宙'] : localPet.level >= 10 ? ['星河守护者', '星芒'] : localPet.level >= 5 ? ['湖畔学徒', '晨露'] : ['萌新草龟', '微光'];
         localPet.title = adv[0];
@@ -149,7 +150,18 @@
         mergedZen = typeof incoming.zen === 'number' ? incoming.zen : state.zen;
       }
 
-      // 4. 智能合并信件列表并识别新信件
+      // 4. 智能合并已购买道具库与英雄集市 (Owned & Market)
+      const mergedOwned = Array.from(new Set([
+        ...(state.owned || []),
+        ...(incoming.owned || [])
+      ]));
+      const mergedHeroCoins = Math.max(state.heroCoins || 0, incoming.heroCoins || 0);
+      const mergedMarketUnlocked = Array.from(new Set([
+        ...(state.marketUnlocked || []),
+        ...(incoming.marketUnlocked || [])
+      ]));
+
+      // 5. 智能合并信件列表并识别新信件
       const currentLetterIds = new Set((state.letters || []).map(l => l.id || `${l.senderId || ''}-${l.body}-${l.time}`));
       const incomingLetters = Array.isArray(incoming.letters) ? incoming.letters : [];
       let hasNewLetter = false;
@@ -174,7 +186,7 @@
         mergedLetters.splice(0, mergedLetters.length - 50);
       }
 
-      // 5. 智能合并庭院装饰与房屋升级状态
+      // 6. 智能合并庭院装饰与果树生命周期状态 (全集合并 + LWW 时间戳仲裁防重复采摘)
       const mergedUnlockedHouses = Array.from(new Set([
         ...(state.garden.unlockedHouses || ['cottage_lv1']),
         ...(incoming.garden?.unlockedHouses || [])
@@ -182,21 +194,32 @@
       const incomingHouseStyle = incoming.garden?.houseStyle;
       const mergedHouseStyle = incomingHouseStyle || state.garden.houseStyle || 'cottage_lv1';
 
-      let mergedDecorations = state.garden.decorations || [];
+      let mergedDecorations = [...(state.garden.decorations || [])];
       if (incoming.garden && Array.isArray(incoming.garden.decorations)) {
-        mergedDecorations = incoming.garden.decorations.map(inDec => {
-          const localDec = (state.garden.decorations || []).find(ld => ld.id === inDec.id);
+        const localDecMap = new Map((state.garden.decorations || []).map(d => [d.id, d]));
+        const incomingDecMap = new Map(incoming.garden.decorations.map(d => [d.id, d]));
+        const allIds = Array.from(new Set([...localDecMap.keys(), ...incomingDecMap.keys()]));
+
+        mergedDecorations = allIds.map(id => {
+          const localDec = localDecMap.get(id);
+          const inDec = incomingDecMap.get(id);
+
           if (!localDec) return inDec;
+          if (!inDec) return localDec;
+
+          if (isDecorEditMode) return localDec;
+
           if (inDec.type === 'tree' || inDec.type === 'plant') {
-            const maxStage = Math.max(localDec.stage ?? 0, inDec.stage ?? 0);
-            return {
-              ...localDec,
-              ...inDec,
-              stage: maxStage,
-              harvested: inDec.harvested || localDec.harvested
-            };
+            const localTime = localDec.updatedAt || localDec.lastStageTime || 0;
+            const inTime = inDec.updatedAt || inDec.lastStageTime || 0;
+            if (inTime > localTime) {
+              return { ...localDec, ...inDec };
+            } else {
+              return { ...inDec, ...localDec };
+            }
           }
-          return isDecorEditMode ? localDec : inDec;
+
+          return inDec;
         });
       }
 
@@ -208,6 +231,9 @@
         user: state.user, // 保留本地用户身份配置
         focus: { ...state.focus, ...incoming.focus },
         pets: mergedPets,
+        owned: mergedOwned,
+        heroCoins: mergedHeroCoins,
+        marketUnlocked: mergedMarketUnlocked,
         garden: {
           ...state.garden,
           houseStyle: mergedHouseStyle,

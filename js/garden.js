@@ -1,15 +1,87 @@
 /* ==========================================================================
    帕帕 · 小南瓜 | 湖畔圣域 — 庭院场景与乌龟 AI 漫步 (Garden & Turtle AI)
    ========================================================================== */
+  function getTurtleShellPalette(petId) {
+    const pet = (typeof state !== 'undefined' && state?.pets?.[petId]) || (petId === 'papa' ? { shell: '#7e6338', edge: '#3c2a16' } : { shell: '#6fae55', edge: '#28441c' });
+    const shellColor = pet.shell || (petId === 'papa' ? '#7e6338' : '#6fae55');
+    const edgeColor = pet.edge || (petId === 'papa' ? '#3c2a16' : '#28441c');
+
+    if (shellColor === '#3ea08b') {
+      // 翡翠龟壳
+      return {
+        gradId: `${petId}ShellMain`,
+        c1: '#5eead4', c2: '#2dd4bf', c3: '#0f766e', c4: '#134e4a',
+        scuteTop: ['#14b8a6', '#0d9488', '#0f766e'],
+        scuteSide: ['#14b8a6', '#0f766e', '#115e59', '#134e4a'],
+        stroke: edgeColor || '#042f2e',
+        speckle1: '#ccfbf1', speckle2: '#a7f3d0'
+      };
+    }
+    if (shellColor === '#d9a23f') {
+      // 黄金龟壳
+      return {
+        gradId: `${petId}ShellMain`,
+        c1: '#fef08a', c2: '#f59e0b', c3: '#b45309', c4: '#78350f',
+        scuteTop: ['#fbbf24', '#f59e0b', '#d97706'],
+        scuteSide: ['#f59e0b', '#d97706', '#b45309', '#92400e'],
+        stroke: edgeColor || '#451a03',
+        speckle1: '#fef9c3', speckle2: '#fef08a'
+      };
+    }
+    if (shellColor === '#7a52aa') {
+      // 幽紫星壳
+      return {
+        gradId: `${petId}ShellMain`,
+        c1: '#e9d5ff', c2: '#c084fc', c3: '#9333ea', c4: '#581c87',
+        scuteTop: ['#a855f7', '#9333ea', '#7e22ce'],
+        scuteSide: ['#9333ea', '#7e22ce', '#6b21a8', '#581c87'],
+        stroke: edgeColor || '#2e1065',
+        speckle1: '#fae8ff', speckle2: '#f3e8ff'
+      };
+    }
+    if (shellColor === '#e87ea1') {
+      // 樱花粉壳
+      return {
+        gradId: `${petId}ShellMain`,
+        c1: '#fce7f3', c2: '#f472b6', c3: '#db2777', c4: '#831843',
+        scuteTop: ['#f472b6', '#ec4899', '#db2777'],
+        scuteSide: ['#ec4899', '#db2777', '#be185d', '#9d174d'],
+        stroke: edgeColor || '#500724',
+        speckle1: '#fdf2f8', speckle2: '#fce7f3'
+      };
+    }
+
+    if (petId === 'papa') {
+      return {
+        gradId: `${petId}ShellMain`,
+        c1: '#987e48', c2: '#846838', c3: '#6a5228', c4: '#4e3a1a',
+        scuteTop: ['#8e743e', '#826834', '#765c2a'],
+        scuteSide: ['#846a36', '#785e2b', '#6e5422', '#644a1a'],
+        stroke: '#342010',
+        speckle1: '#dfcb84', speckle2: '#f4e8a4'
+      };
+    }
+
+    return {
+      gradId: `${petId}ShellMain`,
+      c1: '#8cd06e', c2: '#76b858', c3: '#589c3c', c4: '#407e28',
+      scuteTop: ['#80c262', '#72b554', '#64a544'],
+      scuteSide: ['#76b956', '#6aaf4a', '#5ea33e', '#529532'],
+      stroke: '#223e16',
+      speckle1: '#cbf2ac', speckle2: '#ebfed0'
+    };
+  }
+
   function getTurtleSvg(petId, extraClass = '') {
+    const pal = getTurtleShellPalette(petId);
     if (petId === 'papa') {
       return `<svg class="turtle-svg papa-svg ${extraClass}" viewBox="0 0 190 125" width="100%" height="100%">
   <defs>
-    <linearGradient id="papaShellMain" x1="25%" y1="0%" x2="75%" y2="100%">
-      <stop offset="0%" stop-color="#987e48"/>
-      <stop offset="35%" stop-color="#846838"/>
-      <stop offset="75%" stop-color="#6a5228"/>
-      <stop offset="100%" stop-color="#4e3a1a"/>
+    <linearGradient id="${pal.gradId}" x1="25%" y1="0%" x2="75%" y2="100%">
+      <stop offset="0%" stop-color="${pal.c1}"/>
+      <stop offset="35%" stop-color="${pal.c2}"/>
+      <stop offset="75%" stop-color="${pal.c3}"/>
+      <stop offset="100%" stop-color="${pal.c4}"/>
     </linearGradient>
     <linearGradient id="papaRimMain" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#f2ecd0"/>
@@ -90,70 +162,64 @@
 
   <!-- 8. Plump Round Carapace & Classic Diamond Scutes -->
   <g class="carapace">
-    <!-- Plump Curved Dome Profile -->
-    <path d="M 52 66 C 52 36, 82 20, 116 20 C 150 20, 172 40, 168 68 C 165 76, 156 78, 142 78 C 106 78, 64 76, 52 66 Z" fill="url(#papaShellMain)" stroke="#342010" stroke-width="3.6" stroke-linejoin="round"/>
+    <path d="M 52 66 C 52 36, 82 20, 116 20 C 150 20, 172 40, 168 68 C 165 76, 156 78, 142 78 C 106 78, 64 76, 52 66 Z" fill="url(#${pal.gradId})" stroke="${pal.stroke}" stroke-width="3.6" stroke-linejoin="round"/>
 
     <!-- Vertebral Diamond Row (Top) -->
-    <polygon points="60,46 80,30 102,36 94,54 68,56" fill="#8e743e" stroke="#342010" stroke-width="2.8" stroke-linejoin="round"/>
-    <polygon points="102,36 126,28 144,38 132,56 94,54" fill="#826834" stroke="#342010" stroke-width="2.8" stroke-linejoin="round"/>
-    <polygon points="144,38 162,46 160,62 132,56" fill="#765c2a" stroke="#342010" stroke-width="2.8" stroke-linejoin="round"/>
+    <polygon points="60,46 80,30 102,36 94,54 68,56" fill="${pal.scuteTop[0]}" stroke="${pal.stroke}" stroke-width="2.8" stroke-linejoin="round"/>
+    <polygon points="102,36 126,28 144,38 132,56 94,54" fill="${pal.scuteTop[1]}" stroke="${pal.stroke}" stroke-width="2.8" stroke-linejoin="round"/>
+    <polygon points="144,38 162,46 160,62 132,56" fill="${pal.scuteTop[2]}" stroke="${pal.stroke}" stroke-width="2.8" stroke-linejoin="round"/>
 
-    <!-- Costal Diamond Row (Side) - Extended downward -->
-    <polygon points="60,46 68,56 62,72 50,67" fill="#846a36" stroke="#342010" stroke-width="2.8" stroke-linejoin="round"/>
-    <polygon points="68,56 94,54 100,74 62,72" fill="#785e2b" stroke="#342010" stroke-width="2.8" stroke-linejoin="round"/>
-    <polygon points="94,54 132,56 136,75 100,74" fill="#6e5422" stroke="#342010" stroke-width="2.8" stroke-linejoin="round"/>
-    <polygon points="132,56 160,62 158,75 136,75" fill="#644a1a" stroke="#342010" stroke-width="2.8" stroke-linejoin="round"/>
+    <!-- Costal Diamond Row (Side) -->
+    <polygon points="60,46 68,56 62,72 50,67" fill="${pal.scuteSide[0]}" stroke="${pal.stroke}" stroke-width="2.8" stroke-linejoin="round"/>
+    <polygon points="68,56 94,54 100,74 62,72" fill="${pal.scuteSide[1]}" stroke="${pal.stroke}" stroke-width="2.8" stroke-linejoin="round"/>
+    <polygon points="94,54 132,56 136,75 100,74" fill="${pal.scuteSide[2]}" stroke="${pal.stroke}" stroke-width="2.8" stroke-linejoin="round"/>
+    <polygon points="132,56 160,62 158,75 136,75" fill="${pal.scuteSide[3]}" stroke="${pal.stroke}" stroke-width="2.8" stroke-linejoin="round"/>
 
     <!-- Golden Sand Speckles inside diamond plates -->
-    <!-- Front Scute V1 -->
-    <circle cx="78" cy="38" r="1.8" fill="#dfcb84" opacity="0.95"/>
-    <circle cx="88" cy="36" r="2.2" fill="#ecdc95" opacity="0.95"/>
-    <circle cx="74" cy="46" r="1.9" fill="#dfcb84" opacity="0.95"/>
-    <circle cx="84" cy="48" r="2.4" fill="#f4e8a4" opacity="0.95"/>
-    <circle cx="94" cy="46" r="1.8" fill="#dfcb84" opacity="0.95"/>
+    <circle cx="78" cy="38" r="1.8" fill="${pal.speckle1}" opacity="0.95"/>
+    <circle cx="88" cy="36" r="2.2" fill="${pal.speckle2}" opacity="0.95"/>
+    <circle cx="74" cy="46" r="1.9" fill="${pal.speckle1}" opacity="0.95"/>
+    <circle cx="84" cy="48" r="2.4" fill="${pal.speckle2}" opacity="0.95"/>
+    <circle cx="94" cy="46" r="1.8" fill="${pal.speckle1}" opacity="0.95"/>
 
-    <!-- Middle Scute V2 -->
-    <circle cx="112" cy="37" r="1.8" fill="#dfcb84" opacity="0.95"/>
-    <circle cx="122" cy="35" r="2.2" fill="#ecdc95" opacity="0.95"/>
-    <circle cx="110" cy="46" r="2.4" fill="#f4e8a4" opacity="0.95"/>
-    <circle cx="120" cy="47" r="2.2" fill="#ecdc95" opacity="0.95"/>
-    <circle cx="130" cy="46" r="1.8" fill="#dfcb84" opacity="0.95"/>
+    <circle cx="112" cy="37" r="1.8" fill="${pal.speckle1}" opacity="0.95"/>
+    <circle cx="122" cy="35" r="2.2" fill="${pal.speckle2}" opacity="0.95"/>
+    <circle cx="110" cy="46" r="2.4" fill="${pal.speckle2}" opacity="0.95"/>
+    <circle cx="120" cy="47" r="2.2" fill="${pal.speckle2}" opacity="0.95"/>
+    <circle cx="130" cy="46" r="1.8" fill="${pal.speckle1}" opacity="0.95"/>
 
-    <!-- Rear Scute V3 -->
-    <circle cx="146" cy="48" r="1.9" fill="#dfcb84" opacity="0.95"/>
-    <circle cx="154" cy="52" r="2.2" fill="#ecdc95" opacity="0.95"/>
-    <circle cx="146" cy="58" r="1.8" fill="#dfcb84" opacity="0.9"/>
+    <circle cx="146" cy="48" r="1.9" fill="${pal.speckle1}" opacity="0.95"/>
+    <circle cx="154" cy="52" r="2.2" fill="${pal.speckle2}" opacity="0.95"/>
+    <circle cx="146" cy="58" r="1.8" fill="${pal.speckle1}" opacity="0.9"/>
 
-    <!-- Side Scute C2 -->
-    <circle cx="76" cy="62" r="2" fill="#dfcb84" opacity="0.95"/>
-    <circle cx="86" cy="61" r="2.4" fill="#f4e8a4" opacity="0.95"/>
-    <circle cx="78" cy="68" r="1.9" fill="#ecdc95" opacity="0.95"/>
-    <circle cx="88" cy="68" r="2.2" fill="#dfcb84" opacity="0.95"/>
+    <circle cx="76" cy="62" r="2" fill="${pal.speckle1}" opacity="0.95"/>
+    <circle cx="86" cy="61" r="2.4" fill="${pal.speckle2}" opacity="0.95"/>
+    <circle cx="78" cy="68" r="1.9" fill="${pal.speckle2}" opacity="0.95"/>
+    <circle cx="88" cy="68" r="2.2" fill="${pal.speckle1}" opacity="0.95"/>
 
-    <!-- Side Scute C3 -->
-    <circle cx="110" cy="63" r="2" fill="#dfcb84" opacity="0.95"/>
-    <circle cx="120" cy="64" r="2.4" fill="#f4e8a4" opacity="0.95"/>
-    <circle cx="114" cy="70" r="2" fill="#ecdc95" opacity="0.95"/>
-    <circle cx="124" cy="70" r="1.8" fill="#dfcb84" opacity="0.95"/>
+    <circle cx="110" cy="63" r="2" fill="${pal.speckle1}" opacity="0.95"/>
+    <circle cx="120" cy="64" r="2.4" fill="${pal.speckle2}" opacity="0.95"/>
+    <circle cx="114" cy="70" r="2" fill="${pal.speckle2}" opacity="0.95"/>
+    <circle cx="124" cy="70" r="1.8" fill="${pal.speckle1}" opacity="0.95"/>
   </g>
 
   <!-- 9. Slim & Natural Shell Rim (Narrow curved trim) -->
   <g class="shell-rim">
-    <path d="M 50 69 C 64 72, 110 76, 160 74 C 165 76, 164 79, 156 80 C 120 82, 68 80, 48 75 C 46 72, 47 70, 50 69 Z" fill="url(#papaRimMain)" stroke="#342010" stroke-width="2.6" stroke-linejoin="round"/>
-    <path d="M 74 72 L 73 78" stroke="#7a5e30" stroke-width="1.6" stroke-linecap="round" opacity="0.75"/>
-    <path d="M 98 74 L 97 80" stroke="#7a5e30" stroke-width="1.6" stroke-linecap="round" opacity="0.75"/>
-    <path d="M 122 75 L 121 81" stroke="#7a5e30" stroke-width="1.6" stroke-linecap="round" opacity="0.75"/>
-    <path d="M 144 75 L 143 79" stroke="#7a5e30" stroke-width="1.6" stroke-linecap="round" opacity="0.75"/>
+    <path d="M 50 69 C 64 72, 110 76, 160 74 C 165 76, 164 79, 156 80 C 120 82, 68 80, 48 75 C 46 72, 47 70, 50 69 Z" fill="url(#papaRimMain)" stroke="${pal.stroke}" stroke-width="2.6" stroke-linejoin="round"/>
+    <path d="M 74 72 L 73 78" stroke="${pal.stroke}" stroke-width="1.6" stroke-linecap="round" opacity="0.6"/>
+    <path d="M 98 74 L 97 80" stroke="${pal.stroke}" stroke-width="1.6" stroke-linecap="round" opacity="0.6"/>
+    <path d="M 122 75 L 121 81" stroke="${pal.stroke}" stroke-width="1.6" stroke-linecap="round" opacity="0.6"/>
+    <path d="M 144 75 L 143 79" stroke="${pal.stroke}" stroke-width="1.6" stroke-linecap="round" opacity="0.6"/>
   </g>
 </svg>`;
     } else {
       return `<svg class="turtle-svg pumpkin-svg ${extraClass}" viewBox="0 0 190 125" width="100%" height="100%">
   <defs>
-    <linearGradient id="pumpkinShellMain" x1="25%" y1="0%" x2="75%" y2="100%">
-      <stop offset="0%" stop-color="#8cd06e"/>
-      <stop offset="35%" stop-color="#76b858"/>
-      <stop offset="75%" stop-color="#589c3c"/>
-      <stop offset="100%" stop-color="#407e28"/>
+    <linearGradient id="${pal.gradId}" x1="25%" y1="0%" x2="75%" y2="100%">
+      <stop offset="0%" stop-color="${pal.c1}"/>
+      <stop offset="35%" stop-color="${pal.c2}"/>
+      <stop offset="75%" stop-color="${pal.c3}"/>
+      <stop offset="100%" stop-color="${pal.c4}"/>
     </linearGradient>
     <linearGradient id="pumpkinRimMain" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#faf6d4"/>
@@ -233,59 +299,54 @@
 
   <!-- 8. Plump Round Carapace & Classic Diamond Scutes -->
   <g class="carapace">
-    <path d="M 52 66 C 52 36, 82 20, 116 20 C 150 20, 172 40, 168 68 C 165 76, 156 78, 142 78 C 106 78, 64 76, 52 66 Z" fill="url(#pumpkinShellMain)" stroke="#223e16" stroke-width="3.6" stroke-linejoin="round"/>
+    <path d="M 52 66 C 52 36, 82 20, 116 20 C 150 20, 172 40, 168 68 C 165 76, 156 78, 142 78 C 106 78, 64 76, 52 66 Z" fill="url(#${pal.gradId})" stroke="${pal.stroke}" stroke-width="3.6" stroke-linejoin="round"/>
 
     <!-- Vertebral Diamond Row (Top) -->
-    <polygon points="60,46 80,30 102,36 94,54 68,56" fill="#80c262" stroke="#223e16" stroke-width="2.8" stroke-linejoin="round"/>
-    <polygon points="102,36 126,28 144,38 132,56 94,54" fill="#72b554" stroke="#223e16" stroke-width="2.8" stroke-linejoin="round"/>
-    <polygon points="144,38 162,46 160,62 132,56" fill="#64a544" stroke="#223e16" stroke-width="2.8" stroke-linejoin="round"/>
+    <polygon points="60,46 80,30 102,36 94,54 68,56" fill="${pal.scuteTop[0]}" stroke="${pal.stroke}" stroke-width="2.8" stroke-linejoin="round"/>
+    <polygon points="102,36 126,28 144,38 132,56 94,54" fill="${pal.scuteTop[1]}" stroke="${pal.stroke}" stroke-width="2.8" stroke-linejoin="round"/>
+    <polygon points="144,38 162,46 160,62 132,56" fill="${pal.scuteTop[2]}" stroke="${pal.stroke}" stroke-width="2.8" stroke-linejoin="round"/>
 
     <!-- Costal Diamond Row (Side) -->
-    <polygon points="60,46 68,56 62,72 50,67" fill="#76b956" stroke="#223e16" stroke-width="2.8" stroke-linejoin="round"/>
-    <polygon points="68,56 94,54 100,74 62,72" fill="#6aaf4a" stroke="#223e16" stroke-width="2.8" stroke-linejoin="round"/>
-    <polygon points="94,54 132,56 136,75 100,74" fill="#5ea33e" stroke="#223e16" stroke-width="2.8" stroke-linejoin="round"/>
-    <polygon points="132,56 160,62 158,75 136,75" fill="#529532" stroke="#223e16" stroke-width="2.8" stroke-linejoin="round"/>
+    <polygon points="60,46 68,56 62,72 50,67" fill="${pal.scuteSide[0]}" stroke="${pal.stroke}" stroke-width="2.8" stroke-linejoin="round"/>
+    <polygon points="68,56 94,54 100,74 62,72" fill="${pal.scuteSide[1]}" stroke="${pal.stroke}" stroke-width="2.8" stroke-linejoin="round"/>
+    <polygon points="94,54 132,56 136,75 100,74" fill="${pal.scuteSide[2]}" stroke="${pal.stroke}" stroke-width="2.8" stroke-linejoin="round"/>
+    <polygon points="132,56 160,62 158,75 136,75" fill="${pal.scuteSide[3]}" stroke="${pal.stroke}" stroke-width="2.8" stroke-linejoin="round"/>
 
     <!-- Mint Speckles inside diamond plates -->
-    <!-- Front Scute V1 -->
-    <circle cx="78" cy="38" r="1.8" fill="#cbf2ac" opacity="0.95"/>
-    <circle cx="88" cy="36" r="2.2" fill="#defac0" opacity="0.95"/>
-    <circle cx="74" cy="46" r="1.9" fill="#cbf2ac" opacity="0.95"/>
-    <circle cx="84" cy="48" r="2.4" fill="#ebfed0" opacity="0.95"/>
-    <circle cx="94" cy="46" r="1.8" fill="#cbf2ac" opacity="0.95"/>
+    <circle cx="78" cy="38" r="1.8" fill="${pal.speckle1}" opacity="0.95"/>
+    <circle cx="88" cy="36" r="2.2" fill="${pal.speckle2}" opacity="0.95"/>
+    <circle cx="74" cy="46" r="1.9" fill="${pal.speckle1}" opacity="0.95"/>
+    <circle cx="84" cy="48" r="2.4" fill="${pal.speckle2}" opacity="0.95"/>
+    <circle cx="94" cy="46" r="1.8" fill="${pal.speckle1}" opacity="0.95"/>
 
-    <!-- Middle Scute V2 -->
-    <circle cx="112" cy="37" r="1.8" fill="#cbf2ac" opacity="0.95"/>
-    <circle cx="122" cy="35" r="2.2" fill="#defac0" opacity="0.95"/>
-    <circle cx="110" cy="46" r="2.4" fill="#ebfed0" opacity="0.95"/>
-    <circle cx="120" cy="47" r="2.2" fill="#defac0" opacity="0.95"/>
-    <circle cx="130" cy="46" r="1.8" fill="#cbf2ac" opacity="0.95"/>
+    <circle cx="112" cy="37" r="1.8" fill="${pal.speckle1}" opacity="0.95"/>
+    <circle cx="122" cy="35" r="2.2" fill="${pal.speckle2}" opacity="0.95"/>
+    <circle cx="110" cy="46" r="2.4" fill="${pal.speckle2}" opacity="0.95"/>
+    <circle cx="120" cy="47" r="2.2" fill="${pal.speckle2}" opacity="0.95"/>
+    <circle cx="130" cy="46" r="1.8" fill="${pal.speckle1}" opacity="0.95"/>
 
-    <!-- Rear Scute V3 -->
-    <circle cx="146" cy="48" r="1.9" fill="#cbf2ac" opacity="0.95"/>
-    <circle cx="154" cy="52" r="2.2" fill="#defac0" opacity="0.95"/>
-    <circle cx="146" cy="58" r="1.8" fill="#cbf2ac" opacity="0.9"/>
+    <circle cx="146" cy="48" r="1.9" fill="${pal.speckle1}" opacity="0.95"/>
+    <circle cx="154" cy="52" r="2.2" fill="${pal.speckle2}" opacity="0.95"/>
+    <circle cx="146" cy="58" r="1.8" fill="${pal.speckle1}" opacity="0.9"/>
 
-    <!-- Side Scute C2 -->
-    <circle cx="76" cy="62" r="2" fill="#cbf2ac" opacity="0.95"/>
-    <circle cx="86" cy="61" r="2.4" fill="#ebfed0" opacity="0.95"/>
-    <circle cx="78" cy="68" r="1.9" fill="#defac0" opacity="0.95"/>
-    <circle cx="88" cy="68" r="2.2" fill="#cbf2ac" opacity="0.95"/>
+    <circle cx="76" cy="62" r="2" fill="${pal.speckle1}" opacity="0.95"/>
+    <circle cx="86" cy="61" r="2.4" fill="${pal.speckle2}" opacity="0.95"/>
+    <circle cx="78" cy="68" r="1.9" fill="${pal.speckle2}" opacity="0.95"/>
+    <circle cx="88" cy="68" r="2.2" fill="${pal.speckle1}" opacity="0.95"/>
 
-    <!-- Side Scute C3 -->
-    <circle cx="110" cy="63" r="2" fill="#cbf2ac" opacity="0.95"/>
-    <circle cx="120" cy="64" r="2.4" fill="#ebfed0" opacity="0.95"/>
-    <circle cx="114" cy="70" r="2" fill="#defac0" opacity="0.95"/>
-    <circle cx="124" cy="70" r="1.8" fill="#cbf2ac" opacity="0.95"/>
+    <circle cx="110" cy="63" r="2" fill="${pal.speckle1}" opacity="0.95"/>
+    <circle cx="120" cy="64" r="2.4" fill="${pal.speckle2}" opacity="0.95"/>
+    <circle cx="114" cy="70" r="2" fill="${pal.speckle2}" opacity="0.95"/>
+    <circle cx="124" cy="70" r="1.8" fill="${pal.speckle1}" opacity="0.95"/>
   </g>
 
-  <!-- 9. Slim & Natural Shell Rim (Narrow curved trim) -->
+  <!-- 9. Slim & Natural Shell Rim -->
   <g class="shell-rim">
-    <path d="M 50 69 C 64 72, 110 76, 160 74 C 165 76, 164 79, 156 80 C 120 82, 68 80, 48 75 C 46 72, 47 70, 50 69 Z" fill="url(#pumpkinRimMain)" stroke="#223e16" stroke-width="2.6" stroke-linejoin="round"/>
-    <path d="M 74 72 L 73 78" stroke="#5d823e" stroke-width="1.6" stroke-linecap="round" opacity="0.75"/>
-    <path d="M 98 74 L 97 80" stroke="#5d823e" stroke-width="1.6" stroke-linecap="round" opacity="0.75"/>
-    <path d="M 122 75 L 121 81" stroke="#5d823e" stroke-width="1.6" stroke-linecap="round" opacity="0.75"/>
-    <path d="M 144 75 L 143 79" stroke="#5d823e" stroke-width="1.6" stroke-linecap="round" opacity="0.75"/>
+    <path d="M 50 69 C 64 72, 110 76, 160 74 C 165 76, 164 79, 156 80 C 120 82, 68 80, 48 75 C 46 72, 47 70, 50 69 Z" fill="url(#pumpkinRimMain)" stroke="${pal.stroke}" stroke-width="2.6" stroke-linejoin="round"/>
+    <path d="M 74 72 L 73 78" stroke="${pal.stroke}" stroke-width="1.6" stroke-linecap="round" opacity="0.6"/>
+    <path d="M 98 74 L 97 80" stroke="${pal.stroke}" stroke-width="1.6" stroke-linecap="round" opacity="0.6"/>
+    <path d="M 122 75 L 121 81" stroke="${pal.stroke}" stroke-width="1.6" stroke-linecap="round" opacity="0.6"/>
+    <path d="M 144 75 L 143 79" stroke="${pal.stroke}" stroke-width="1.6" stroke-linecap="round" opacity="0.6"/>
   </g>
 </svg>`;
     }
@@ -446,6 +507,7 @@
       decor.stage = 0;
       decor.harvested = false;
       decor.lastStageTime = Date.now();
+      decor.updatedAt = Date.now();
 
       persist(); render(); sync(true);
     } else if (stage === 3 && decor.harvested) {
