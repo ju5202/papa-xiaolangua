@@ -74,14 +74,41 @@
     isRoomHost = false;
   }
 
+  let peerJsLoadingPromise = null;
+
+  function ensurePeerJsAsync() {
+    if (typeof Peer !== 'undefined') return Promise.resolve(true);
+    if (peerJsLoadingPromise) return peerJsLoadingPromise;
+
+    peerJsLoadingPromise = new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js';
+      script.async = true;
+      script.onload = () => resolve(true);
+      script.onerror = () => {
+        const fallback = document.createElement('script');
+        fallback.src = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
+        fallback.async = true;
+        fallback.onload = () => resolve(true);
+        fallback.onerror = () => {
+          console.warn('[Sync] 无法加载远程 P2P 模块，将仅使用本地极速广播通道。');
+          resolve(false);
+        };
+        document.head.appendChild(fallback);
+      };
+      document.head.appendChild(script);
+    });
+
+    return peerJsLoadingPromise;
+  }
+
   // -------------------------------------------------------------------------
   // WebRTC P2P 房间直连自组网算法 (Zero-Server P2P Mesh)
   // -------------------------------------------------------------------------
-  function initRemoteP2P(channelId) {
-    if (typeof Peer === 'undefined') {
-      console.warn('[Sync] PeerJS 未加载，运行在纯本地广播模式。');
-      return;
-    }
+  async function initRemoteP2P(channelId) {
+    const ready = await ensurePeerJsAsync();
+    if (!ready || typeof Peer === 'undefined') return;
+    if (state.channel !== channelId) return; // 若频道已切换，取消过时的握手
 
     const cleanChan = getCleanChannelId(channelId);
     const hostPeerId = `papa_h_${cleanChan}`;
@@ -103,6 +130,10 @@
       const hostPeer = new Peer(hostPeerId, peerConfig);
 
       hostPeer.on('open', (id) => {
+        if (state.channel !== channelId) {
+          hostPeer.destroy();
+          return;
+        }
         activePeer = hostPeer;
         isRoomHost = true;
         setSyncText(`P2P 空间就绪 · 等待伙伴连入`);
@@ -117,7 +148,9 @@
         if (err.type === 'unavailable-id') {
           // 该频道的 Host 已存在，当前客户端作为 Client 连入 Host
           hostPeer.destroy();
-          joinAsClientPeer(clientPeerId, hostPeerId, peerConfig);
+          if (state.channel === channelId) {
+            joinAsClientPeer(clientPeerId, hostPeerId, peerConfig);
+          }
         } else {
           console.warn('[Sync] P2P Host 连接提示:', err.type);
         }
