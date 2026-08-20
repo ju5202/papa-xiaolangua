@@ -150,7 +150,20 @@
     $('#saveChannel').onclick = () => {
       const value = $('#channelInput').value.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 24);
       if (!value) return toast('频道 ID 不能为空', '请填写一个短 ID。');
-      state.channel = value; openChannel(); sync(true); render(); closeModal(); toast('已连接湖畔', `正在频道 ${value} 中共养。`);
+      if (value === state.channel) {
+        closeModal();
+        return;
+      }
+      if (typeof switchChannel === 'function') {
+        switchChannel(value);
+      } else {
+        state.channel = value;
+        openChannel();
+        sync(true);
+        render();
+      }
+      closeModal();
+      toast('已连接湖畔', `已切换至频道【${value}】，聊天与贡献已独立隔离。`);
     };
   }
   const shopItems = [
@@ -911,6 +924,7 @@
 
       const newLetter = {
         id: `msg_${Date.now()}_${Math.random().toString(16).slice(2, 6)}`,
+        channel: state.channel || 'PAPA-0828',
         senderId: state.user.id,
         senderName: state.user.name,
         senderAvatar: state.user.avatar,
@@ -923,6 +937,8 @@
       if (state.letters.length > 50) {
         state.letters.splice(0, state.letters.length - 50);
       }
+      state.channelLetters = state.channelLetters || {};
+      state.channelLetters[state.channel] = state.letters;
       sync(true);
       render();
       if (typeof mqttClient !== 'undefined' && mqttClient && mqttClient.connected) {

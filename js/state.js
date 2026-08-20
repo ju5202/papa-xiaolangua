@@ -535,8 +535,10 @@
     zenUpdatedAt: Date.now(),
     heroCoins: 0,
     marketUnlocked: [],
+    channelLetters: {},
+    channelContributions: {},
     letters: [
-      { id: 'welcome-001', senderId: 'system', senderName: '远方的共养者', senderAvatar: '💌', body: '欢迎来到湖畔！慢慢陪伴两只小龟长大吧。', time: '刚刚', timestamp: Date.now() }
+      { id: 'welcome-001', channel: 'PAPA-0828', senderId: 'system', senderName: '远方的共养者', senderAvatar: '💌', body: '欢迎来到湖畔！慢慢陪伴两只小龟长大吧。', time: '刚刚', timestamp: Date.now() }
     ],
     owned: []
   };
@@ -667,16 +669,36 @@
           details: { petCare: 0, treeHarvest: 0, keyboardZen: 0, keystrokes: savedKeystrokes, focusTimer: 0, chestReward: 0 },
           lastActive: Date.now()
         };
+        fallback.channelLetters = {
+          [fallback.channel]: fallback.letters
+        };
         return fallback;
       }
+      const curChan = saved.channel || defaultState.channel || 'PAPA-0828';
+      let channelLetters = saved.channelLetters;
+      if (!channelLetters || typeof channelLetters !== 'object') {
+        channelLetters = {};
+        if (Array.isArray(saved.letters) && saved.letters.length > 0) {
+          channelLetters[curChan] = saved.letters.map(l => ({ ...l, channel: curChan }));
+        }
+      }
+      if (!channelLetters[curChan] || !Array.isArray(channelLetters[curChan])) {
+        channelLetters[curChan] = [
+          { id: `welcome-${curChan}`, channel: curChan, senderId: 'system', senderName: '远方的共养者', senderAvatar: '💌', body: `欢迎来到频道【${curChan}】！慢慢陪伴两只小龟长大吧。`, time: '刚刚', timestamp: Date.now() }
+        ];
+      }
+
       const stateObj = {
         ...fallback, ...saved,
+        channel: curChan,
+        channelLetters,
+        channelContributions: saved.channelContributions || {},
         focus: { ...defaultState.focus, ...saved.focus },
         user: { ...defaultState.user, ...(saved.user || {}) },
         contributions: { ...(saved.contributions || {}) },
         pets: { ...freshCopy(defaultState.pets), ...saved.pets },
         garden: { ...freshCopy(defaultState.garden), ...saved.garden },
-        letters: Array.isArray(saved.letters) ? saved.letters : freshCopy(defaultState.letters)
+        letters: channelLetters[curChan]
       };
       stateObj.user.id = stateObj.user.id || clientId;
       stateObj.keystrokes = Math.max(stateObj.keystrokes || 0, savedKeystrokes);
@@ -745,6 +767,65 @@
       return stateObj;
     } catch { return freshCopy(defaultState); }
   }
+
+  function switchChannel(newChannel) {
+    if (!newChannel) return;
+    const oldChannel = state.channel || 'PAPA-0828';
+    if (newChannel === oldChannel) return;
+
+    // 1. 严格将旧频道的聊天记录与贡献榜暂存至本地字典
+    state.channelLetters = state.channelLetters || {};
+    state.channelLetters[oldChannel] = [...(state.letters || [])];
+
+    state.channelContributions = state.channelContributions || {};
+    state.channelContributions[oldChannel] = { ...(state.contributions || {}) };
+
+    // 2. 切换频道 ID
+    state.channel = newChannel;
+
+    // 3. 独立加载新频道的信件列表，杜绝串扰
+    if (!state.channelLetters[newChannel] || !Array.isArray(state.channelLetters[newChannel])) {
+      state.channelLetters[newChannel] = [
+        { id: `welcome-${newChannel}`, channel: newChannel, senderId: 'system', senderName: '远方的共养者', senderAvatar: '💌', body: `欢迎来到频道【${newChannel}】！慢慢陪伴两只小龟长大吧。`, time: '刚刚', timestamp: Date.now() }
+      ];
+    }
+    state.letters = [...state.channelLetters[newChannel]];
+
+    // 4. 加载新频道的贡献榜（保留当前用户本人数据，隔离旧频道的其他伙伴）
+    const myContribution = state.contributions?.[state.user.id] || {
+      id: state.user.id,
+      name: state.user.name,
+      avatar: state.user.avatar,
+      totalZen: state.zen || 0,
+      todayZen: 0,
+      lastDay: dayKey,
+      details: { petCare: 0, treeHarvest: 0, keyboardZen: 0, keystrokes: state.keystrokes || 0, focusTimer: 0, chestReward: 0 },
+      lastActive: Date.now()
+    };
+
+    if (state.channelContributions[newChannel]) {
+      state.contributions = {
+        ...state.channelContributions[newChannel],
+        [state.user.id]: myContribution
+      };
+    } else {
+      state.contributions = {
+        [state.user.id]: myContribution
+      };
+    }
+
+    persist();
+    if (typeof openChannel === 'function') {
+      openChannel();
+    }
+    if (typeof sync === 'function') {
+      sync(true);
+    }
+    if (typeof render === 'function') {
+      render();
+    }
+  }
+
   let state = loadState();
   let currentHabitatFilter = 'all';
   let isDecorEditMode = false;
@@ -858,6 +939,12 @@
   ];
 
   function persist() {
+    if (state.channel) {
+      state.channelLetters = state.channelLetters || {};
+      state.channelLetters[state.channel] = state.letters || [];
+      state.channelContributions = state.channelContributions || {};
+      state.channelContributions[state.channel] = state.contributions || {};
+    }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     window.sanctuaryDesktop?.sendSyncState(state);
   }

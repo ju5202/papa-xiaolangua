@@ -64,6 +64,8 @@
 
   function handleIncomingMessage(data) {
     if (!data) return;
+    // 严格校验消息频道，杜绝跨频道串扰与信息泄露
+    if (data.channel && data.channel !== state.channel) return;
     // 仅过滤来自本地自身的广播回环，正常接收远方伙伴的数据
     if (data.senderId && data.senderId === state.user.id) return;
 
@@ -173,9 +175,11 @@
         ...(incoming.marketUnlocked || [])
       ]));
 
-      // 5. 智能合并信件列表并识别新信件
+      // 5. 智能合并信件列表并识别新信件（严格按频道隔离）
+      const curChan = state.channel || 'PAPA-0828';
       const currentLetterIds = new Set((state.letters || []).map(l => l.id || `${l.senderId || ''}-${l.body}-${l.time}`));
-      const incomingLetters = Array.isArray(incoming.letters) ? incoming.letters : [];
+      const incomingLetters = (Array.isArray(incoming.letters) ? incoming.letters : [])
+        .filter(l => !l.channel || l.channel === curChan);
       let hasNewLetter = false;
       let newestLetter = null;
 
@@ -191,12 +195,15 @@
       incomingLetters.forEach(inLet => {
         const inLid = inLet.id || `${inLet.senderId || ''}-${inLet.body}-${inLet.time}`;
         if (!mergedLetters.some(ex => (ex.id || `${ex.senderId || ''}-${ex.body}-${ex.time}`) === inLid)) {
-          mergedLetters.push(inLet);
+          mergedLetters.push({ ...inLet, channel: curChan });
         }
       });
       if (mergedLetters.length > 50) {
         mergedLetters.splice(0, mergedLetters.length - 50);
       }
+
+      state.channelLetters = state.channelLetters || {};
+      state.channelLetters[curChan] = mergedLetters;
 
       // 6. 智能合并庭院装饰与果树生命周期状态 (全集合并 + LWW 时间戳仲裁防重复采摘)
       const mergedUnlockedHouses = Array.from(new Set([
@@ -219,40 +226,64 @@
           if (!localDec) return inDec;
           if (!inDec) return localDec;
 
-          if (isDecorEditMode) return localDec;
+          // 若两端均存在相同 ID 的摆件，以最新的位置更新为准
+          return {
+            ...localDec,
+            ...inDec,
+            stage: (inDec.stage !== undefined) ? inDec.stage : localDec.stage,
+            harvested: (inDec.harvested !== undefined) ? inDec.harvested : localDec.harvested
+          };
+        });
+      }
 
-          if (inDec.type === 'tree' || inDec.type === 'plant') {
-            const localTime = localDec.updatedAt || localDec.lastStageTime || 0;
-            const inTime = inDec.updatedAt || inDec.lastStageTime || 0;
-            if (inTime > localTime) {
-              return { ...localDec, ...inDec };
-            } else {
-              return { ...inDec, ...localDec };
-            }
+      // 7. 增量采纳远程高好感度与高等级，避免抚摸或投喂操作被落后状态覆盖
+      const mergedPets = { ...state.pets };
+      if (incoming.pets) {
+        ['papa', 'pumpkin'].forEach(pId => {
+          if (incoming.pets[pId]) {
+            const inP = incoming.pets[pId];
+            const localP = mergedPets[pId] || inP;
+
+            // 升级与经验智能同步
+            const inCumulativeXp = getCumulativeXp(inP.level, inP.xp);
+            const localCumulativeXp = getCumulativeXp(localP.level, localP.xp);
+            const maxCumulativeXp = Math.max(inCumulativeXp, localCumulativeXp);
+            const resolved = resolveLevelAndXp(maxCumulativeXp);
+
+            const titleInfo = getPetTitleInfo(pId, resolved.level);
+
+            mergedPets[pId] = {
+              ...localP,
+              ...inP,
+              level: resolved.level,
+              xp: resolved.xp,
+              title: titleInfo.title,
+              aura: titleInfo.aura,
+              happiness: Math.max(localP.happiness || 0, inP.happiness || 0),
+              hunger: Math.max(localP.hunger || 0, inP.hunger || 0),
+              clean: Math.max(localP.clean || 0, inP.clean || 0),
+              equipment: inP.equipment || localP.equipment || ''
+            };
           }
-
-          return inDec;
         });
       }
 
       state = {
         ...state,
-        zen: mergedZen,
-        zenUpdatedAt: mergedZenUpdatedAt,
-        keystrokes: Math.max(state.keystrokes || 0, incoming.keystrokes || 0, mergedContributions[state.user.id]?.details?.keystrokes || 0),
-        user: state.user, // 保留本地用户身份配置
-        focus: { ...state.focus, ...incoming.focus },
-        pets: mergedPets,
-        owned: mergedOwned,
-        heroCoins: mergedHeroCoins,
+        zen: Math.max(state.zen || 0, incoming.zen || 0),
+        keyboardZen: Math.max(state.keyboardZen || 0, incoming.keyboardZen || 0),
+        heroCoins: Math.max(state.heroCoins || 0, incoming.heroCoins || 0),
         marketUnlocked: mergedMarketUnlocked,
+        contributions: mergedContributions,
+        pets: mergedPets,
         garden: {
           ...state.garden,
+          plantStage: Math.max(state.garden.plantStage || 0, incoming.garden?.plantStage || 0),
+          harvested: (incoming.garden?.harvested !== undefined) ? incoming.garden.harvested : state.garden.harvested,
           houseStyle: mergedHouseStyle,
           unlockedHouses: mergedUnlockedHouses,
           decorations: mergedDecorations
         },
-        contributions: mergedContributions,
         letters: mergedLetters
       };
       persist();
@@ -300,8 +331,10 @@
   }
 
   function broadcastDeliveryAck(letterId, recipientId, senderName, senderAvatar) {
+    const curChan = state.channel || 'PAPA-0828';
     const packet = {
       type: 'letter_delivered',
+      channel: curChan,
       letterId,
       recipientId,
       senderId: state.user.id,
@@ -311,23 +344,30 @@
     };
     broadcast?.postMessage(packet);
     if (mqttClient && mqttClient.connected) {
-      const topic = `papa-pumpkin-sanctuary/channel/${state.channel}`;
+      const topic = `papa-pumpkin-sanctuary/channel/${curChan}`;
       mqttClient.publish(topic, JSON.stringify(packet), { qos: 0 });
     }
   }
 
   function broadcastSyncPacket() {
+    const curChan = state.channel || 'PAPA-0828';
+    const channelLetters = (state.letters || []).filter(l => !l.channel || l.channel === curChan);
     const packet = {
       type: 'state',
+      channel: curChan,
       senderId: state.user.id,
       senderName: state.user.name,
       senderAvatar: state.user.avatar,
       timestamp: Date.now(),
-      payload: state
+      payload: {
+        ...state,
+        channel: curChan,
+        letters: channelLetters
+      }
     };
     broadcast?.postMessage(packet);
     if (mqttClient && mqttClient.connected) {
-      const topic = `papa-pumpkin-sanctuary/channel/${state.channel}`;
+      const topic = `papa-pumpkin-sanctuary/channel/${curChan}`;
       mqttClient.publish(topic, JSON.stringify(packet), { qos: 0 });
     }
   }
