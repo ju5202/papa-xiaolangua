@@ -2,7 +2,7 @@
    帕帕 · 小南瓜 | 湖畔圣域 — 双模极速独立同步引擎 (Hybrid Local & WebRTC P2P Sync)
    1. 本地层：基于频道绑定的 BroadcastChannel + StorageEvent (同机/任务栏挂件 <0.1ms 内存总线)
    2. 远程层：基于 WebRTC DataChannel 的端到端加密 P2P 直连 (异地跨电脑远程联通，零中心服务器中转)
-   3. 增量动作合并 (Delta Action) 与严格房间隔离，彻底杜绝数据串扰与相互覆盖
+   3. 增量动作合并 (Delta Action) 与 V4 强隔离数据结构，彻底杜绝数据串扰与相互覆盖
    ========================================================================== */
 
   let broadcast = null;
@@ -10,6 +10,18 @@
   let activeConnections = new Map();
   let isRoomHost = false;
   let p2pReconnectTimer = null;
+  let pingIntervalTimer = null;
+
+  // 联通状态管理
+  let syncStatus = 'local'; // 'local' | 'searching' | 'connected'
+  let partnerInfo = {
+    id: null,
+    name: '远方伙伴',
+    avatar: '🎃',
+    latency: null,
+    lastPing: 0,
+    isOnline: false
+  };
 
   function getCleanChannelId(channel) {
     return String(channel || 'PAPA-0828').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 16) || 'PAPA0828';
@@ -45,12 +57,13 @@
     // 3. 开启远程跨电脑 WebRTC P2P 直连网络
     initRemoteP2P(curChan);
 
-    setSyncText(`已连入独立共养频道 ${curChan}`);
+    updateConnectionStatusUI();
     setTimeout(() => broadcastSyncPacket(), 150);
   }
 
   function closeChannel() {
     clearTimeout(p2pReconnectTimer);
+    clearInterval(pingIntervalTimer);
 
     // 关闭本地广播通道
     if (broadcast) {
@@ -72,6 +85,10 @@
       activePeer = null;
     }
     isRoomHost = false;
+    syncStatus = 'local';
+    partnerInfo.isOnline = false;
+    partnerInfo.latency = null;
+    updateConnectionStatusUI();
   }
 
   let peerJsLoadingPromise = null;
@@ -106,8 +123,15 @@
   // WebRTC P2P 房间直连自组网算法 (Zero-Server P2P Mesh)
   // -------------------------------------------------------------------------
   async function initRemoteP2P(channelId) {
+    syncStatus = 'searching';
+    updateConnectionStatusUI();
+
     const ready = await ensurePeerJsAsync();
-    if (!ready || typeof Peer === 'undefined') return;
+    if (!ready || typeof Peer === 'undefined') {
+      syncStatus = 'local';
+      updateConnectionStatusUI();
+      return;
+    }
     if (state.channel !== channelId) return; // 若频道已切换，取消过时的握手
 
     const cleanChan = getCleanChannelId(channelId);
@@ -136,7 +160,8 @@
         }
         activePeer = hostPeer;
         isRoomHost = true;
-        setSyncText(`P2P 空间就绪 · 等待伙伴连入`);
+        syncStatus = 'searching';
+        updateConnectionStatusUI();
 
         // 作为房主，接受远方伙伴的连入连接
         hostPeer.on('connection', (conn) => {
@@ -166,6 +191,9 @@
       clientPeer.on('open', () => {
         activePeer = clientPeer;
         isRoomHost = false;
+        syncStatus = 'searching';
+        updateConnectionStatusUI();
+
         const conn = clientPeer.connect(targetHostId, {
           reliable: true,
           metadata: {
@@ -188,15 +216,46 @@
   function setupP2PConnection(conn, isHost) {
     conn.on('open', () => {
       activeConnections.set(conn.peer, conn);
-      setSyncText(`✨ 远方伙伴已通过 WebRTC 直连`);
-      toast('✦ 远程伙伴已直连', `已与远方的共养伙伴建立 P2P 加密直连信道！`);
+      syncStatus = 'connected';
+      partnerInfo.isOnline = true;
 
-      // 握手成功后立即互相同步当前最新庭院快照
+      // 提取伙伴元信息
+      if (conn.metadata) {
+        partnerInfo.id = conn.metadata.userId || partnerInfo.id;
+        partnerInfo.name = conn.metadata.userName || partnerInfo.name;
+        partnerInfo.avatar = conn.metadata.userAvatar || partnerInfo.avatar;
+      }
+
+      updateConnectionStatusUI();
+      toast('✦ 远程伙伴已直连', `已与远方共养伙伴建立 P2P 加密直连信道！`);
+
+      // 握手成功后立即互发 Ping 测速与全量状态快照
+      sendPing(conn);
       broadcastSyncPacket();
+
+      // 开启心跳测速定时器
+      clearInterval(pingIntervalTimer);
+      pingIntervalTimer = setInterval(() => {
+        if (conn.open) sendPing(conn);
+      }, 15000);
     });
 
     conn.on('data', (data) => {
       if (!data) return;
+
+      // 测速响应
+      if (data.type === 'ping') {
+        try { conn.send({ type: 'pong', time: data.time }); } catch {}
+        return;
+      }
+      if (data.type === 'pong') {
+        const rtt = Math.max(1, Date.now() - (data.time || 0));
+        partnerInfo.latency = rtt;
+        partnerInfo.isOnline = true;
+        updateConnectionStatusUI();
+        return;
+      }
+
       handleIncomingMessage(data);
 
       // 如果当前是 Host，并且连接了多位伙伴，负责广播转发
@@ -212,7 +271,10 @@
     conn.on('close', () => {
       activeConnections.delete(conn.peer);
       if (activeConnections.size === 0) {
-        setSyncText(`已连入独立共养频道 ${state.channel}`);
+        syncStatus = 'searching';
+        partnerInfo.isOnline = false;
+        partnerInfo.latency = null;
+        updateConnectionStatusUI();
       }
 
       // 如果 Host 断开，当前 Client 尝试自动接任升级为 Host
@@ -229,6 +291,13 @@
     });
   }
 
+  function sendPing(conn) {
+    if (!conn || !conn.open) return;
+    try {
+      conn.send({ type: 'ping', time: Date.now() });
+    } catch {}
+  }
+
   function handleStorageEvent(event) {
     if (!state || !state.channel) return;
     const currentKey = getChannelStorageKey(state.channel);
@@ -242,7 +311,7 @@
   }
 
   // -------------------------------------------------------------------------
-  // 核心消息分发与增量合并引擎 (Delta Action & Conflict-Free Merging)
+  // 核心消息分发与增量合并引擎 (Delta Action & V4 Conflict-Free Merging)
   // -------------------------------------------------------------------------
   function handleIncomingMessage(data) {
     if (!data) return;
@@ -250,6 +319,17 @@
     if (data.channel && data.channel !== state.channel) return;
     // 过滤本地自身的回环广播
     if (data.senderId && data.senderId === state.user.id) return;
+
+    // 记录发送者为当前在线伙伴
+    if (data.senderName) {
+      partnerInfo.name = data.senderName;
+      partnerInfo.avatar = data.senderAvatar || '🎃';
+      partnerInfo.isOnline = true;
+      if (syncStatus !== 'connected') {
+        syncStatus = 'connected';
+      }
+      updateConnectionStatusUI();
+    }
 
     // 1. 飞鸽传书/短信 送达确认回执 (Delivery Receipt ACK)
     if (data.type === 'letter_delivered') {
@@ -271,9 +351,9 @@
       return;
     }
 
-    // 3. 增量互动动作同步 (Pet Care Action - 保证双人抚摸/喂食/打扫不相互覆盖)
+    // 3. 增量互动动作同步 (Pet Care Action)
     if (data.type === 'pet_action') {
-      const { petId, action, stats } = data;
+      const { petId, stats } = data;
       const pet = state.pets?.[petId];
       if (pet && stats) {
         if (stats.deltaHunger) pet.hunger = Math.min(100, (pet.hunger || 0) + stats.deltaHunger);
@@ -287,11 +367,12 @@
       return;
     }
 
-    // 4. 增量禅意贡献同步 (Zen Gain - 保证双人禅意累加不回滚)
+    // 4. 增量禅意贡献同步 (Zen Gain)
     if (data.type === 'zen_gain') {
       const { amount, category } = data;
       if (amount > 0) {
         state.zen = (state.zen || 0) + amount;
+        if (state.economy) state.economy.zen = state.zen;
         recordContribution(amount, category || 'keyboardZen', {
           id: data.senderId,
           name: data.senderName,
@@ -312,6 +393,7 @@
       if (!state.letters.some(l => l.id === inLet.id)) {
         state.letters.push(inLet);
         if (state.letters.length > 50) state.letters.splice(0, state.letters.length - 50);
+        if (state.mailbox) state.mailbox.letters = state.letters;
         persist();
         render();
         broadcastDeliveryAck(inLet.id, inLet.senderId, state.user.name, state.user.avatar);
@@ -384,7 +466,7 @@
       ...(incoming.marketUnlocked || [])
     ]));
 
-    // 3. 智能合并乌龟状态 (双向高好感度与经验融合，绝不覆盖落后)
+    // 3. 智能合并乌龟状态
     const mergedPets = { ...state.pets };
     if (incoming.pets) {
       ['papa', 'pumpkin'].forEach(petId => {
@@ -414,7 +496,7 @@
       });
     }
 
-    // 4. 智能合并信件（严格限制当前频道）
+    // 4. 智能合并信件
     const curChan = state.channel;
     const currentLetterIds = new Set((state.letters || []).map(l => l.id || `${l.senderId || ''}-${l.body}-${l.time}`));
     const incomingLetters = (Array.isArray(incoming.letters) ? incoming.letters : [])
@@ -471,6 +553,11 @@
     state = {
       ...state,
       zen: mergedZen,
+      economy: {
+        ...(state.economy || {}),
+        zen: mergedZen,
+        heroCoins: mergedHeroCoins
+      },
       keyboardZen: Math.max(state.keyboardZen || 0, incoming.keyboardZen || 0),
       heroCoins: mergedHeroCoins,
       marketUnlocked: mergedMarketUnlocked,
@@ -484,12 +571,15 @@
         unlockedHouses: mergedUnlockedHouses,
         decorations: mergedDecorations
       },
-      letters: mergedLetters
+      letters: mergedLetters,
+      mailbox: {
+        ...(state.mailbox || {}),
+        letters: mergedLetters
+      }
     };
 
     persist();
     render();
-    setSyncText('收到远程伙伴的庭院更新');
 
     if (hasNewLetter && newestLetter) {
       const senderName = escapeHTML(newestLetter.senderName || '共养伙伴');
@@ -529,10 +619,10 @@
   function sendUnifiedPacket(packet) {
     if (!packet) return;
 
-    // 1. 本地多窗口/悬浮窗广播
+    // 1. 本地多窗口/悬浮窗广播 (<0.1ms)
     broadcast?.postMessage(packet);
 
-    // 2. 远程 P2P WebRTC 通道广播
+    // 2. 远程 P2P WebRTC 通道广播 (<35ms)
     if (activeConnections.size > 0) {
       activeConnections.forEach(conn => {
         if (conn && conn.open) {
@@ -639,12 +729,65 @@
     sendUnifiedPacket(packet);
   }
 
+  // -------------------------------------------------------------------------
+  // 联通状态指示与 UI 实时联动驱动器
+  // -------------------------------------------------------------------------
+  function updateConnectionStatusUI() {
+    const syncTextEl = $('#syncText');
+    const syncStateRow = $('.sync-state');
+    const statusTextEl = $('#statusText');
+    const navStatus = $('.nav-status');
+    const channelAvatars = $('#channelAvatars');
+
+    let text = '实时同步已开启';
+    let statusClass = 'status-local';
+    let bottomText = '一切安好';
+
+    if (syncStatus === 'connected') {
+      statusClass = 'status-online';
+      const pingText = partnerInfo.latency ? ` · ${partnerInfo.latency}ms` : '';
+      text = `🟢 已与【${partnerInfo.name}】P2P 实时直连${pingText}`;
+      bottomText = `🟢 P2P 在线直连 (${partnerInfo.name})`;
+    } else if (syncStatus === 'searching') {
+      statusClass = 'status-searching';
+      text = `🟡 P2P 空间就绪 · 等待伙伴连入...`;
+      bottomText = `🟡 等待远方伙伴加入`;
+    } else {
+      statusClass = 'status-local';
+      text = `⚪ 本地独立运行模式`;
+      bottomText = `⚪ 本地独立空间`;
+    }
+
+    if (syncTextEl) syncTextEl.textContent = text;
+    if (statusTextEl) statusTextEl.textContent = bottomText;
+
+    if (syncStateRow) {
+      syncStateRow.className = `sync-state ${statusClass}`;
+    }
+    if (navStatus) {
+      navStatus.className = `nav-status ${statusClass}`;
+    }
+
+    // 更新头像在线徽章
+    if (channelAvatars) {
+      const myAvatar = state.user?.avatar || '🐢';
+      const partnerAvatar = partnerInfo.isOnline ? partnerInfo.avatar : '🌙';
+      const partnerHaloClass = partnerInfo.isOnline ? 'avatar-online-halo' : 'avatar-searching-halo';
+      const partnerTitle = partnerInfo.isOnline ? `伙伴【${partnerInfo.name}】在线直连中` : '等待远方伙伴接入频道';
+
+      channelAvatars.innerHTML = `
+        <span class="avatar-bubble my-avatar" title="我 (${state.user?.name || '饲养员'})">${myAvatar}</span>
+        <span class="avatar-bubble partner-avatar ${partnerHaloClass}" title="${partnerTitle}">${partnerAvatar}</span>
+      `;
+    }
+  }
+
   function setSyncText(text) {
     const el = $('#syncText');
     if (!el) return;
     el.textContent = text;
     clearTimeout(setSyncText.timeout);
     setSyncText.timeout = setTimeout(() => {
-      if ($('#syncText')) $('#syncText').textContent = '实时同步已开启';
+      updateConnectionStatusUI();
     }, 2400);
   }

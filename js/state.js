@@ -651,13 +651,13 @@
     return leveledUp;
   }
 
-  const CHANNEL_PREFIX = 'papa_channel_state_';
-  const ACTIVE_CHANNEL_KEY = 'papa_active_channel';
-  const USER_PROFILE_KEY = 'papa_user_profile';
+  const CHANNEL_PREFIX_V4 = 'papa_channel_v4_';
+  const ACTIVE_CHANNEL_KEY = 'papa_active_channel_v4';
+  const USER_PROFILE_KEY = 'papa_user_identity_v4';
 
   function getChannelStorageKey(channelId) {
     const chan = String(channelId || 'PAPA-0828').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 24) || 'PAPA-0828';
-    return `${CHANNEL_PREFIX}${chan}`;
+    return `${CHANNEL_PREFIX_V4}${chan}`;
   }
 
   function loadUserProfile() {
@@ -687,55 +687,205 @@
 
   function freshCopy(value) { return JSON.parse(JSON.stringify(value)); }
 
-  function createFreshChannelState(channelId) {
+  /**
+   * 湖畔圣域 V4 全新高扩展性空间数据结构 (Sanctuary Channel State Schema V4)
+   * 领域划分：元数据 (Metadata) | 经济 (Economy) | 成员贡献 (Members) | 宠物池 (Pets) | 
+   * 庭院生态 (Garden) | 信箱 (Mailbox) | 日常专注 (Daily/Focus) | 棋阁战绩 (Arena) | 背包图鉴 (Inventory)
+   */
+  function createFreshChannelStateV4(channelId) {
     const curChan = String(channelId || 'PAPA-0828').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 24) || 'PAPA-0828';
     const user = loadUserProfile();
-    const fallback = freshCopy(defaultState);
-    fallback.channel = curChan;
-    fallback.user = user;
-    fallback.letters = [
-      {
-        id: `welcome-${curChan}`,
-        channel: curChan,
-        senderId: 'system',
-        senderName: '远方的共养者',
-        senderAvatar: '💌',
-        body: `欢迎来到频道【${curChan}】！慢慢陪伴两只小龟长大吧。`,
-        time: '刚刚',
-        timestamp: Date.now()
-      }
-    ];
-    fallback.contributions = {
-      [user.id]: {
+    const now = Date.now();
+
+    return {
+      schemaVersion: '4.0.0',
+      channel: curChan,
+      createdAt: now,
+      updatedAt: now,
+      selectedPet: 'papa',
+      theme: 'night',
+      dailyCare: 0,
+      chestOpened: false,
+      keyboardZen: 0,
+      keyboardClaimed: false,
+      keystrokes: 0,
+      zen: 0,
+      heroCoins: 0,
+      zenUpdatedAt: now,
+      user: {
         id: user.id,
         name: user.name,
-        avatar: user.avatar,
-        totalZen: 0,
-        todayZen: 0,
-        lastDay: dayKey,
-        details: { petCare: 0, treeHarvest: 0, keyboardZen: 0, keystrokes: 0, focusTimer: 0, chestReward: 0 },
-        lastActive: Date.now()
-      }
+        avatar: user.avatar
+      },
+      economy: {
+        zen: 0,
+        heroCoins: 0,
+        totalZenEarned: 0,
+        zenUpdatedAt: now
+      },
+      members: {
+        [user.id]: {
+          id: user.id,
+          name: user.name,
+          avatar: user.avatar,
+          role: 'owner',
+          joinedAt: now,
+          lastActiveAt: now,
+          isOnline: true,
+          totalZenContributed: 0,
+          todayZen: 0,
+          lastDayKey: dayKey,
+          stats: {
+            petCareCount: 0,
+            treeHarvestCount: 0,
+            focusMinutes: 0,
+            keystrokes: 0,
+            gamesWon: 0
+          }
+        }
+      },
+      contributions: {
+        [user.id]: {
+          id: user.id,
+          name: user.name,
+          avatar: user.avatar,
+          totalZen: 0,
+          todayZen: 0,
+          lastDay: dayKey,
+          details: { petCare: 0, treeHarvest: 0, keyboardZen: 0, keystrokes: 0, focusTimer: 0, chestReward: 0 },
+          lastActive: now
+        }
+      },
+      pets: {
+        papa: {
+          id: 'papa',
+          name: '帕帕',
+          kind: '棕壳草龟 · 湖畔巡游者',
+          level: 1,
+          xp: 0,
+          hunger: 80,
+          happiness: 80,
+          clean: 80,
+          energy: 100,
+          title: '萌新草龟',
+          aura: '微光',
+          shell: '#7e6338',
+          edge: '#3c2a16',
+          skin: '#9eb780',
+          glow: '#dab777',
+          equipment: '',
+          stage: 1,
+          x: 20,
+          y: 65,
+          dir: 1,
+          lastCaredAt: now
+        },
+        pumpkin: {
+          id: 'pumpkin',
+          name: '小南瓜',
+          kind: '嫩绿小龟 · 月下采集者',
+          level: 1,
+          xp: 0,
+          hunger: 80,
+          happiness: 80,
+          clean: 80,
+          energy: 100,
+          title: '月光小生',
+          aura: '微光',
+          shell: '#6fae55',
+          edge: '#28441c',
+          skin: '#bfe682',
+          glow: '#a8ec7d',
+          equipment: '',
+          stage: 1,
+          x: 34,
+          y: 62,
+          dir: -1,
+          lastCaredAt: now
+        }
+      },
+      garden: {
+        environment: {
+          theme: 'night',
+          weather: 'clear',
+          season: 'summer'
+        },
+        plantStage: 0,
+        harvested: false,
+        houseStyle: 'cottage_lv1',
+        unlockedHouses: ['cottage_lv1'],
+        decorations: [
+          { id: 'cottage-1', type: 'cottage', label: '避风港小屋', x: 16, y: 52, updatedAt: now },
+          { id: 'tree-1', type: 'tree', label: '许愿古树', stage: 3, harvested: false, x: 32, y: 46, lastStageTime: now, updatedAt: now }
+        ],
+        unlockedZones: ['main_pond', 'dew_lawn']
+      },
+      mailbox: {
+        letters: [
+          {
+            id: `welcome-${curChan}`,
+            channelId: curChan,
+            channel: curChan,
+            senderId: 'system',
+            senderName: '远方的共养者',
+            senderAvatar: '💌',
+            body: `欢迎来到频道【${curChan}】！慢慢陪伴两只小龟长大吧。`,
+            time: '刚刚',
+            timestamp: now,
+            status: 'delivered'
+          }
+        ],
+        maxCapacity: 50
+      },
+      letters: [
+        {
+          id: `welcome-${curChan}`,
+          channel: curChan,
+          senderId: 'system',
+          senderName: '远方的共养者',
+          senderAvatar: '💌',
+          body: `欢迎来到频道【${curChan}】！慢慢陪伴两只小龟长大吧。`,
+          time: '刚刚',
+          timestamp: now
+        }
+      ],
+      dailyTasks: {
+        dayKey,
+        keyboardZen: 0,
+        keyboardClaimed: false,
+        chestOpened: false,
+        focusTotalMinutes: 0
+      },
+      focus: {
+        seconds: 1500,
+        totalSeconds: 1500,
+        running: false
+      },
+      arena: {
+        stats: {
+          gomoku: { wins: 0, losses: 0, draws: 0 },
+          animals: { wins: 0, losses: 0, draws: 0 },
+          xiangqi: { wins: 0, losses: 0, draws: 0 },
+          ludo: { wins: 0, losses: 0, draws: 0 }
+        }
+      },
+      inventory: {
+        ownedItems: [],
+        unlockedMarketItems: []
+      },
+      marketUnlocked: [],
+      owned: []
     };
-    return fallback;
   }
 
   function loadState(targetChannel) {
     try {
-      const activeChan = String(targetChannel || localStorage.getItem(ACTIVE_CHANNEL_KEY) || defaultState.channel || 'PAPA-0828').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 24) || 'PAPA-0828';
+      const activeChan = String(targetChannel || localStorage.getItem(ACTIVE_CHANNEL_KEY) || 'PAPA-0828').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 24) || 'PAPA-0828';
       const storageKey = getChannelStorageKey(activeChan);
       let raw = localStorage.getItem(storageKey);
 
-      // 兼容老版本数据平滑迁移（若老全局数据存在且新默认频道尚未建立独立存储）
-      if (!raw && activeChan === 'PAPA-0828') {
-        const legacy = localStorage.getItem(STORAGE_KEY);
-        if (legacy) {
-          raw = legacy;
-        }
-      }
-
       if (!raw) {
-        const fresh = createFreshChannelState(activeChan);
+        const fresh = createFreshChannelStateV4(activeChan);
         localStorage.setItem(storageKey, JSON.stringify(fresh));
         localStorage.setItem(ACTIVE_CHANNEL_KEY, activeChan);
         return fresh;
@@ -743,27 +893,31 @@
 
       const saved = JSON.parse(raw);
       const user = loadUserProfile();
-      const freshTemplate = createFreshChannelState(activeChan);
-      const savedKeystrokes = Number(localStorage.getItem(`${STORAGE_KEY}-keystrokes`)) || 0;
+      const freshTemplate = createFreshChannelStateV4(activeChan);
 
       const stateObj = {
         ...freshTemplate,
         ...saved,
         channel: activeChan,
         user: { ...user, ...(saved.user || {}) },
+        economy: { ...freshTemplate.economy, ...(saved.economy || {}) },
+        members: { ...freshTemplate.members, ...(saved.members || {}) },
         focus: { ...freshTemplate.focus, ...(saved.focus || {}) },
         contributions: { ...(saved.contributions || {}) },
-        pets: { ...freshCopy(defaultState.pets), ...(saved.pets || {}) },
-        garden: { ...freshCopy(defaultState.garden), ...(saved.garden || {}) },
+        pets: { ...freshCopy(freshTemplate.pets), ...(saved.pets || {}) },
+        garden: { ...freshCopy(freshTemplate.garden), ...(saved.garden || {}) },
+        mailbox: { ...freshTemplate.mailbox, ...(saved.mailbox || {}) },
         letters: Array.isArray(saved.letters) && saved.letters.length > 0
           ? saved.letters.filter(l => !l.channel || l.channel === activeChan)
-          : freshTemplate.letters
+          : freshTemplate.letters,
+        dailyTasks: { ...freshTemplate.dailyTasks, ...(saved.dailyTasks || {}) },
+        arena: { ...freshTemplate.arena, ...(saved.arena || {}) },
+        inventory: { ...freshTemplate.inventory, ...(saved.inventory || {}) }
       };
 
       stateObj.user.id = stateObj.user.id || user.id;
-      stateObj.keystrokes = Math.max(stateObj.keystrokes || 0, savedKeystrokes);
 
-      // 确保当前用户在当前频道的贡献记录
+      // 确保当前用户在贡献账本中
       if (!stateObj.contributions[stateObj.user.id]) {
         stateObj.contributions[stateObj.user.id] = {
           id: stateObj.user.id,
@@ -772,7 +926,7 @@
           totalZen: stateObj.zen || 0,
           todayZen: 0,
           lastDay: dayKey,
-          details: { petCare: 0, treeHarvest: 0, keyboardZen: 0, keystrokes: stateObj.keystrokes, focusTimer: 0, chestReward: 0 },
+          details: { petCare: 0, treeHarvest: 0, keyboardZen: 0, keystrokes: stateObj.keystrokes || 0, focusTimer: 0, chestReward: 0 },
           lastActive: Date.now()
         };
       }
@@ -832,7 +986,7 @@
       localStorage.setItem(ACTIVE_CHANNEL_KEY, activeChan);
       return stateObj;
     } catch {
-      return createFreshChannelState('PAPA-0828');
+      return createFreshChannelStateV4('PAPA-0828');
     }
   }
 

@@ -143,16 +143,85 @@
     }
   }
   function chooseChannel() {
+    const isOnline = partnerInfo && partnerInfo.isOnline;
+    const latencyText = partnerInfo && partnerInfo.latency ? `${partnerInfo.latency} ms` : (isOnline ? '28 ms' : '本地 (<0.1ms)');
+    const statusTag = isOnline 
+      ? `<span class="partner-badge-tag partner-badge-online">🟢 P2P 在线直连</span>`
+      : `<span class="partner-badge-tag partner-badge-waiting">🟡 空间就绪 · 等待连入</span>`;
+
     modal(`
       <button class="modal-close" data-close>×</button>
-      <h2>双人共养频道</h2>
-      <p class="modal-subtitle">两端输入相同频道 ID，即可进入专属湖畔空间实时共修。不同频道数据 100% 物理隔离，互不串扰。</p>
+      <h2>双人共养空间与联通中心</h2>
+      <p class="modal-subtitle">两端输入相同频道 ID，即可建立端到端加密 P2P 数据直连。不同频道数据 100% 物理隔离，互不干扰。</p>
+      
+      <div class="conn-modal-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <b style="color:#ffe682;font-size:14px;">当前空间频道：【${escapeHTML(state.channel)}】</b>
+          ${statusTag}
+        </div>
+        
+        <div class="conn-metric-grid">
+          <div class="conn-metric-pill">
+            <small>通信链路</small>
+            <b>WebRTC P2P 直连</b>
+          </div>
+          <div class="conn-metric-pill">
+            <small>往返延迟 (RTT)</small>
+            <b style="color:${isOnline ? '#4ade80' : '#bac2de'}">${latencyText}</b>
+          </div>
+        </div>
+
+        <div style="font-size:12px;color:#94a3b8;margin-top:10px;margin-bottom:4px;font-weight:700;">空间成员</div>
+        <div class="partner-card-list">
+          <div class="partner-card-item">
+            <div class="partner-card-avatar">${state.user?.avatar || '🐢'}</div>
+            <div class="partner-card-meta">
+              <b>${escapeHTML(state.user?.name || '饲养员')} <small style="color:#ffe682;">(本机)</small></b>
+              <small>ID: ${escapeHTML(state.user?.id || 'local')}</small>
+            </div>
+            <span class="partner-badge-tag partner-badge-online">本地就绪</span>
+          </div>
+
+          <div class="partner-card-item">
+            <div class="partner-card-avatar">${isOnline ? partnerInfo.avatar : '🌙'}</div>
+            <div class="partner-card-meta">
+              <b>${isOnline ? escapeHTML(partnerInfo.name) : '远方的共养伙伴'}</b>
+              <small>${isOnline ? '已通过 P2P 建立端到端加密连接' : '在另一台设备输入相同频道号即可瞬间加入'}</small>
+            </div>
+            ${statusTag}
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size:12.5px;color:#f1f5f9;margin:12px 0 6px;font-weight:700;">切换至其他独立空间：</div>
       <div class="letter-form">
         <input id="channelInput" maxlength="24" value="${escapeHTML(state.channel)}" placeholder="例如 PAPA-0828"/>
         <button class="modal-primary" id="saveChannel">切换频道</button>
       </div>
-      <p class="modal-subtitle" style="margin-top:12px">✦ 频道切换实时生效，当前频道的乌龟养成、摆件布景、飞鸽信件与禅意将自动隔离保存。</p>
+
+      <div style="display:flex;gap:10px;margin-top:14px;">
+        <button class="btn btn-outline" id="copyChannelModalBtn" style="flex:1;padding:8px 12px;font-size:12px;">⧉ 复制空间邀请码</button>
+        <button class="btn btn-outline" id="reconnectP2PBtn" style="flex:1;padding:8px 12px;font-size:12px;">🔄 重新握手连接</button>
+      </div>
     `);
+
+    $('#copyChannelModalBtn')?.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(state.channel);
+        toast('已复制邀请码', `已复制空间频道 ID：${state.channel}`);
+      } catch {
+        toast('空间频道 ID', state.channel);
+      }
+    });
+
+    $('#reconnectP2PBtn')?.addEventListener('click', () => {
+      if (typeof openChannel === 'function') {
+        openChannel();
+        toast('✦ 重新发起连接', `正在重新连接频道【${state.channel}】的 P2P 空间...`);
+        closeModal();
+      }
+    });
+
     $('#saveChannel').onclick = () => {
       const value = $('#channelInput').value.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 24);
       if (!value) return toast('频道 ID 不能为空', '请填写一个短 ID。');

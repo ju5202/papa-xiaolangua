@@ -114,6 +114,8 @@
       if (e.target.closest('#copyChannel') || e.target.closest('#editProfileBtn')) return;
       chooseChannel();
     };
+    $('.sync-state')?.addEventListener('click', chooseChannel);
+    $('.nav-status')?.addEventListener('click', chooseChannel);
     $('#openContributionCard')?.addEventListener('click', showContributionModal);
     $('#editProfileBtn')?.addEventListener('click', (e) => {
       e.stopPropagation();
