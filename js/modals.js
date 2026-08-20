@@ -144,9 +144,15 @@
   }
   function chooseChannel() {
     modal(`
-      <button class="modal-close" data-close>×</button><h2>双人共养频道</h2><p class="modal-subtitle">两端输入相同频道 ID，即可在同一浏览器档案或支持 BroadcastChannel 的窗口间同步庭院状态。</p>
-      <div class="letter-form"><input id="channelInput" maxlength="24" value="${escapeHTML(state.channel)}" placeholder="例如 PAPA-0828"/><button class="modal-primary" id="saveChannel">加入频道</button></div>
-      <p class="modal-subtitle" style="margin-top:12px">当前同步范围：摆件位置、种植/收获、装备、禅意值和飞鸽传书。</p>`);
+      <button class="modal-close" data-close>×</button>
+      <h2>双人共养频道</h2>
+      <p class="modal-subtitle">两端输入相同频道 ID，即可进入专属湖畔空间实时共修。不同频道数据 100% 物理隔离，互不串扰。</p>
+      <div class="letter-form">
+        <input id="channelInput" maxlength="24" value="${escapeHTML(state.channel)}" placeholder="例如 PAPA-0828"/>
+        <button class="modal-primary" id="saveChannel">切换频道</button>
+      </div>
+      <p class="modal-subtitle" style="margin-top:12px">✦ 频道切换实时生效，当前频道的乌龟养成、摆件布景、飞鸽信件与禅意将自动隔离保存。</p>
+    `);
     $('#saveChannel').onclick = () => {
       const value = $('#channelInput').value.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 24);
       if (!value) return toast('频道 ID 不能为空', '请填写一个短 ID。');
@@ -156,14 +162,9 @@
       }
       if (typeof switchChannel === 'function') {
         switchChannel(value);
-      } else {
-        state.channel = value;
-        openChannel();
-        sync(true);
-        render();
       }
       closeModal();
-      toast('已连接湖畔', `已切换至频道【${value}】，聊天与贡献已独立隔离。`);
+      toast('✦ 已进入专属空间', `已切换至频道【${value}】，数据已完全隔离加载。`);
     };
   }
   const shopItems = [
@@ -986,25 +987,20 @@
       if (state.letters.length > 50) {
         state.letters.splice(0, state.letters.length - 50);
       }
-      state.channelLetters = state.channelLetters || {};
-      state.channelLetters[state.channel] = state.letters;
-      sync(true);
-      render();
-      if (typeof mqttClient !== 'undefined' && mqttClient && mqttClient.connected) {
-        toast('✉ 飞鸽已起飞', `以【${state.user.name}】的名义已寄往共养频道，远方即将收到。`);
-      } else {
-        toast('✉ 飞鸽已起飞', '信件已寄出，正在送往远方的湖畔...');
+      persist();
+      if (typeof broadcastLetter === 'function') {
+        broadcastLetter(newLetter);
       }
+      render();
+      toast('✉ 飞鸽已起飞', `以【${state.user.name}】的名义已寄往频道【${state.channel}】。`);
 
-      // 单机测试与离线送达保护（若 1.6 秒内网络回执未返回且未连接多个远端，自动给予视觉欢庆跳舞反馈）
+      // 发信送达欢庆反馈
       clearTimeout(window.__letterDeliverySimTimer);
       window.__letterDeliverySimTimer = setTimeout(() => {
-        if (!mqttClient || !mqttClient.connected) {
-          if (typeof triggerTurtleDeliveryCelebration === 'function') {
-            triggerTurtleDeliveryCelebration({ isSenderAck: true });
-          }
+        if (typeof triggerTurtleDeliveryCelebration === 'function') {
+          triggerTurtleDeliveryCelebration({ isSenderAck: true });
         }
-      }, 1600);
+      }, 1200);
 
       showMessenger();
     };

@@ -651,57 +651,119 @@
     return leveledUp;
   }
 
-  function freshCopy(value) { return JSON.parse(JSON.stringify(value)); }
-  function loadState() {
+  const CHANNEL_PREFIX = 'papa_channel_state_';
+  const ACTIVE_CHANNEL_KEY = 'papa_active_channel';
+  const USER_PROFILE_KEY = 'papa_user_profile';
+
+  function getChannelStorageKey(channelId) {
+    const chan = String(channelId || 'PAPA-0828').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 24) || 'PAPA-0828';
+    return `${CHANNEL_PREFIX}${chan}`;
+  }
+
+  function loadUserProfile() {
     try {
-      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-      const fallback = freshCopy(defaultState);
-      const savedKeystrokes = Number(localStorage.getItem(`${STORAGE_KEY}-keystrokes`)) || 0;
-      if (!saved) {
-        fallback.keystrokes = savedKeystrokes;
-        fallback.contributions[clientId] = {
-          id: clientId,
-          name: fallback.user.name,
-          avatar: fallback.user.avatar,
-          totalZen: 0,
-          todayZen: 0,
-          lastDay: dayKey,
-          details: { petCare: 0, treeHarvest: 0, keyboardZen: 0, keystrokes: savedKeystrokes, focusTimer: 0, chestReward: 0 },
-          lastActive: Date.now()
+      const saved = JSON.parse(localStorage.getItem(USER_PROFILE_KEY));
+      if (saved && saved.id) {
+        return {
+          id: saved.id,
+          name: saved.name || '帕帕饲养员',
+          avatar: saved.avatar || '🐢'
         };
-        fallback.channelLetters = {
-          [fallback.channel]: fallback.letters
-        };
-        return fallback;
       }
-      const curChan = saved.channel || defaultState.channel || 'PAPA-0828';
-      let channelLetters = saved.channelLetters;
-      if (!channelLetters || typeof channelLetters !== 'object') {
-        channelLetters = {};
-        if (Array.isArray(saved.letters) && saved.letters.length > 0) {
-          channelLetters[curChan] = saved.letters.map(l => ({ ...l, channel: curChan }));
+    } catch {}
+    return {
+      id: clientId,
+      name: '帕帕饲养员',
+      avatar: '🐢'
+    };
+  }
+
+  function saveUserProfile(profile) {
+    if (!profile) return;
+    try {
+      localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(profile));
+    } catch {}
+  }
+
+  function freshCopy(value) { return JSON.parse(JSON.stringify(value)); }
+
+  function createFreshChannelState(channelId) {
+    const curChan = String(channelId || 'PAPA-0828').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 24) || 'PAPA-0828';
+    const user = loadUserProfile();
+    const fallback = freshCopy(defaultState);
+    fallback.channel = curChan;
+    fallback.user = user;
+    fallback.letters = [
+      {
+        id: `welcome-${curChan}`,
+        channel: curChan,
+        senderId: 'system',
+        senderName: '远方的共养者',
+        senderAvatar: '💌',
+        body: `欢迎来到频道【${curChan}】！慢慢陪伴两只小龟长大吧。`,
+        time: '刚刚',
+        timestamp: Date.now()
+      }
+    ];
+    fallback.contributions = {
+      [user.id]: {
+        id: user.id,
+        name: user.name,
+        avatar: user.avatar,
+        totalZen: 0,
+        todayZen: 0,
+        lastDay: dayKey,
+        details: { petCare: 0, treeHarvest: 0, keyboardZen: 0, keystrokes: 0, focusTimer: 0, chestReward: 0 },
+        lastActive: Date.now()
+      }
+    };
+    return fallback;
+  }
+
+  function loadState(targetChannel) {
+    try {
+      const activeChan = String(targetChannel || localStorage.getItem(ACTIVE_CHANNEL_KEY) || defaultState.channel || 'PAPA-0828').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 24) || 'PAPA-0828';
+      const storageKey = getChannelStorageKey(activeChan);
+      let raw = localStorage.getItem(storageKey);
+
+      // 兼容老版本数据平滑迁移（若老全局数据存在且新默认频道尚未建立独立存储）
+      if (!raw && activeChan === 'PAPA-0828') {
+        const legacy = localStorage.getItem(STORAGE_KEY);
+        if (legacy) {
+          raw = legacy;
         }
       }
-      if (!channelLetters[curChan] || !Array.isArray(channelLetters[curChan])) {
-        channelLetters[curChan] = [
-          { id: `welcome-${curChan}`, channel: curChan, senderId: 'system', senderName: '远方的共养者', senderAvatar: '💌', body: `欢迎来到频道【${curChan}】！慢慢陪伴两只小龟长大吧。`, time: '刚刚', timestamp: Date.now() }
-        ];
+
+      if (!raw) {
+        const fresh = createFreshChannelState(activeChan);
+        localStorage.setItem(storageKey, JSON.stringify(fresh));
+        localStorage.setItem(ACTIVE_CHANNEL_KEY, activeChan);
+        return fresh;
       }
 
+      const saved = JSON.parse(raw);
+      const user = loadUserProfile();
+      const freshTemplate = createFreshChannelState(activeChan);
+      const savedKeystrokes = Number(localStorage.getItem(`${STORAGE_KEY}-keystrokes`)) || 0;
+
       const stateObj = {
-        ...fallback, ...saved,
-        channel: curChan,
-        channelLetters,
-        channelContributions: saved.channelContributions || {},
-        focus: { ...defaultState.focus, ...saved.focus },
-        user: { ...defaultState.user, ...(saved.user || {}) },
+        ...freshTemplate,
+        ...saved,
+        channel: activeChan,
+        user: { ...user, ...(saved.user || {}) },
+        focus: { ...freshTemplate.focus, ...(saved.focus || {}) },
         contributions: { ...(saved.contributions || {}) },
-        pets: { ...freshCopy(defaultState.pets), ...saved.pets },
-        garden: { ...freshCopy(defaultState.garden), ...saved.garden },
-        letters: channelLetters[curChan]
+        pets: { ...freshCopy(defaultState.pets), ...(saved.pets || {}) },
+        garden: { ...freshCopy(defaultState.garden), ...(saved.garden || {}) },
+        letters: Array.isArray(saved.letters) && saved.letters.length > 0
+          ? saved.letters.filter(l => !l.channel || l.channel === activeChan)
+          : freshTemplate.letters
       };
-      stateObj.user.id = stateObj.user.id || clientId;
+
+      stateObj.user.id = stateObj.user.id || user.id;
       stateObj.keystrokes = Math.max(stateObj.keystrokes || 0, savedKeystrokes);
+
+      // 确保当前用户在当前频道的贡献记录
       if (!stateObj.contributions[stateObj.user.id]) {
         stateObj.contributions[stateObj.user.id] = {
           id: stateObj.user.id,
@@ -714,6 +776,7 @@
           lastActive: Date.now()
         };
       }
+
       Object.values(stateObj.contributions).forEach(entry => {
         if (!entry) return;
         if (!entry.details) {
@@ -727,6 +790,7 @@
           entry.lastDay = dayKey;
         }
       });
+
       if (stateObj.garden) {
         if (!stateObj.garden.houseStyle) stateObj.garden.houseStyle = 'cottage_lv1';
         if (!Array.isArray(stateObj.garden.unlockedHouses)) stateObj.garden.unlockedHouses = ['cottage_lv1'];
@@ -737,6 +801,7 @@
           });
         }
       }
+
       if (stateObj.pets) {
         if (stateObj.pets.papa) {
           const info = getPetTitleInfo('papa', stateObj.pets.papa.level || 1);
@@ -763,66 +828,41 @@
           }
         }
       }
-      if (!stateObj.zenUpdatedAt) stateObj.zenUpdatedAt = Date.now();
+
+      localStorage.setItem(ACTIVE_CHANNEL_KEY, activeChan);
       return stateObj;
-    } catch { return freshCopy(defaultState); }
+    } catch {
+      return createFreshChannelState('PAPA-0828');
+    }
   }
 
-  function switchChannel(newChannel) {
-    if (!newChannel) return;
-    const oldChannel = state.channel || 'PAPA-0828';
-    if (newChannel === oldChannel) return;
+  function switchChannel(newChannelId) {
+    const targetChan = String(newChannelId || 'PAPA-0828').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 24);
+    if (!targetChan) return;
+    if (targetChan === state.channel) return;
 
-    // 1. 严格将旧频道的聊天记录与贡献榜暂存至本地字典
-    state.channelLetters = state.channelLetters || {};
-    state.channelLetters[oldChannel] = [...(state.letters || [])];
-
-    state.channelContributions = state.channelContributions || {};
-    state.channelContributions[oldChannel] = { ...(state.contributions || {}) };
-
-    // 2. 切换频道 ID
-    state.channel = newChannel;
-
-    // 3. 独立加载新频道的信件列表，杜绝串扰
-    if (!state.channelLetters[newChannel] || !Array.isArray(state.channelLetters[newChannel])) {
-      state.channelLetters[newChannel] = [
-        { id: `welcome-${newChannel}`, channel: newChannel, senderId: 'system', senderName: '远方的共养者', senderAvatar: '💌', body: `欢迎来到频道【${newChannel}】！慢慢陪伴两只小龟长大吧。`, time: '刚刚', timestamp: Date.now() }
-      ];
-    }
-    state.letters = [...state.channelLetters[newChannel]];
-
-    // 4. 加载新频道的贡献榜（保留当前用户本人数据，隔离旧频道的其他伙伴）
-    const myContribution = state.contributions?.[state.user.id] || {
-      id: state.user.id,
-      name: state.user.name,
-      avatar: state.user.avatar,
-      totalZen: state.zen || 0,
-      todayZen: 0,
-      lastDay: dayKey,
-      details: { petCare: 0, treeHarvest: 0, keyboardZen: 0, keystrokes: state.keystrokes || 0, focusTimer: 0, chestReward: 0 },
-      lastActive: Date.now()
-    };
-
-    if (state.channelContributions[newChannel]) {
-      state.contributions = {
-        ...state.channelContributions[newChannel],
-        [state.user.id]: myContribution
-      };
-    } else {
-      state.contributions = {
-        [state.user.id]: myContribution
-      };
-    }
-
+    // 1. 立即持久化保存当前旧频道数据
     persist();
+
+    // 2. 彻底断开旧频道的通信通道，防止旧频道消息残留在新信道
+    if (typeof closeChannel === 'function') {
+      closeChannel();
+    }
+
+    // 3. 立即从新频道的专属独立存储槽加载数据（100% 物理隔离）
+    state = loadState(targetChan);
+
+    // 4. 打开新频道的专属通信通道
     if (typeof openChannel === 'function') {
       openChannel();
     }
-    if (typeof sync === 'function') {
-      sync(true);
-    }
+
+    // 5. 立即更新界面与广播
     if (typeof render === 'function') {
       render();
+    }
+    if (typeof sync === 'function') {
+      sync(true);
     }
   }
 
@@ -939,13 +979,14 @@
   ];
 
   function persist() {
-    if (state.channel) {
-      state.channelLetters = state.channelLetters || {};
-      state.channelLetters[state.channel] = state.letters || [];
-      state.channelContributions = state.channelContributions || {};
-      state.channelContributions[state.channel] = state.contributions || {};
+    if (!state || !state.channel) return;
+    const curChan = String(state.channel).trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 24) || 'PAPA-0828';
+    const storageKey = getChannelStorageKey(curChan);
+    localStorage.setItem(storageKey, JSON.stringify(state));
+    localStorage.setItem(ACTIVE_CHANNEL_KEY, curChan);
+    if (state.user) {
+      saveUserProfile(state.user);
     }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     window.sanctuaryDesktop?.sendSyncState(state);
   }
   function escapeHTML(text) { return String(text).replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#039;', '"': '&quot;' }[char])); }

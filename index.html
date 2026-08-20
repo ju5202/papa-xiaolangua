@@ -642,13 +642,7 @@
     <div class="modal" id="modal"></div>
   </section>
   <div class="toast-stack" id="toastStack"></div>
-  <script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
-  <script>
-    if (typeof mqtt === 'undefined') {
-      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/5.10.1/mqtt.min.js"><\/script>');
-    }
-  </script>
-  <!-- 模块化脚本按依赖顺序加载 -->
+  <!-- 模块化脚本按依赖顺序加载 (原生极速通道，零外部网络依赖) -->
   <script src="js/state.js"></script>
   <script src="js/sync.js"></script>
   <script src="js/garden.js"></script>

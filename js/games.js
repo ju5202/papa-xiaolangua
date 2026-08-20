@@ -179,7 +179,7 @@ const GamesArena = (() => {
           <div class="setup-mode-btn" data-mode="pvp" id="setupModePvp">
             <span class="mode-icon">👥</span>
             <b>共养伙伴联机</b>
-            <small>MQTT 远程实时对决</small>
+            <small>独立频道实时联机对决</small>
           </div>
         </div>
 
@@ -1608,7 +1608,7 @@ const GamesArena = (() => {
   }
 
   // -------------------------------------------------------------------------
-  // 8. 远程 MQTT 联机动作同步
+  // 8. 独立频道联机动作同步 (Channel Action Sync)
   // -------------------------------------------------------------------------
   function sendRemoteAction(actionData) {
     if (typeof broadcastGameAction === 'function') {
