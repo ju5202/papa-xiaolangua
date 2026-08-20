@@ -267,8 +267,9 @@
           if ($('#widgetKeystrokes')) $('#widgetKeystrokes').textContent = format(state.keystrokes);
         }
         if (typeof data.zen === 'number') {
-          state.zen = Math.max(state.zen || 0, data.zen);
+          state.zen = data.zen;
           if ($('#widgetZen')) $('#widgetZen').textContent = format(state.zen);
+          if ($('#zenPoints')) $('#zenPoints').textContent = format(state.zen);
         }
       });
 

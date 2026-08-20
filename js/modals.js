@@ -290,8 +290,9 @@
     const owned = state.owned.includes(name);
 
     if (!owned || isTreeSeed || isDecor) {
-      if (state.zen < item.cost) return toast('禅意不够', `购买 ${item.name} 需要 ${item.cost} 禅意值。`);
-      state.zen -= item.cost;
+      if (!spendZen(item.cost, `购买${item.name}`)) {
+        return toast('禅意不够', `购买 ${item.name} 需要 ${item.cost} 禅意值。`);
+      }
       if (!isTreeSeed && !isDecor) {
         state.owned.push(name);
       }
@@ -893,7 +894,7 @@
             ${isEquipped ? '<span class="house-live-tag">居住中</span>' : ''}
           </div>
           <div class="house-card-preview ${house.class}">
-            <div class="house-icon-large">${house.icon}</div>
+            ${typeof getHouseSvg === 'function' ? getHouseSvg(house.id, true) : `<div class="house-icon-large">${house.icon}</div>`}
           </div>
           <div class="house-card-body">
             <h3 class="house-name">${house.name}</h3>
@@ -941,12 +942,11 @@
       btn.onclick = () => {
         const houseId = btn.dataset.upgradeHouse;
         const cost = parseInt(btn.dataset.cost, 10) || 0;
-        if (state.zen < cost) {
+        if (!spendZen(cost, '升级圣域府邸')) {
           toast('⚠️ 禅意不足', `升级此府邸需要 ${cost} 禅意，继续陪伴小龟累积禅意吧！`);
           return;
         }
 
-        state.zen -= cost;
         if (!Array.isArray(state.garden.unlockedHouses)) {
           state.garden.unlockedHouses = ['cottage_lv1'];
         }
@@ -954,7 +954,6 @@
           state.garden.unlockedHouses.push(houseId);
         }
         state.garden.houseStyle = houseId;
-        recordContribution(cost, 'houseUpgrade');
 
         persist();
         render();

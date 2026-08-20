@@ -137,9 +137,17 @@
         localPet.aura = adv[1];
       });
 
-      // 3. 智能合并总禅意值 (确保双方付出均被累计)
-      const contribSum = Object.values(mergedContributions).reduce((sum, u) => sum + (u.totalZen || 0), 0);
-      const mergedZen = Math.max(state.zen || 0, incoming.zen || 0, contribSum);
+      // 3. 智能合并总禅意值与时间戳 (基于最新交易时间戳 LWW 仲裁，防止扣减被覆写回滚)
+      let mergedZen = state.zen;
+      let mergedZenUpdatedAt = state.zenUpdatedAt || 0;
+      const incomingZenUpdatedAt = incoming.zenUpdatedAt || 0;
+
+      if (incomingZenUpdatedAt > mergedZenUpdatedAt) {
+        mergedZen = incoming.zen;
+        mergedZenUpdatedAt = incomingZenUpdatedAt;
+      } else if (incomingZenUpdatedAt === mergedZenUpdatedAt) {
+        mergedZen = typeof incoming.zen === 'number' ? incoming.zen : state.zen;
+      }
 
       // 4. 智能合并信件列表并识别新信件
       const currentLetterIds = new Set((state.letters || []).map(l => l.id || `${l.senderId || ''}-${l.body}-${l.time}`));
@@ -195,6 +203,7 @@
       state = {
         ...state,
         zen: mergedZen,
+        zenUpdatedAt: mergedZenUpdatedAt,
         keystrokes: Math.max(state.keystrokes || 0, incoming.keystrokes || 0, mergedContributions[state.user.id]?.details?.keystrokes || 0),
         user: state.user, // 保留本地用户身份配置
         focus: { ...state.focus, ...incoming.focus },

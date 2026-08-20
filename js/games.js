@@ -108,9 +108,22 @@ const GamesArena = (() => {
   // -------------------------------------------------------------------------
   // 2. 游戏配置弹层与大厅控制器
   // -------------------------------------------------------------------------
+  let isExpanded = false;
+  function toggleExpandedView(force) {
+    const stage = document.getElementById('gamesStage');
+    const btn = document.getElementById('gameExpandBtn');
+    if (!stage) return;
+    isExpanded = typeof force === 'boolean' ? force : !isExpanded;
+    stage.classList.toggle('playing-expanded', isExpanded);
+    if (btn) {
+      btn.textContent = isExpanded ? '🔍 还原视野' : '🔍 宽屏放大';
+    }
+  }
+
   function showLobby() {
     currentGame = null;
     isGameOver = false;
+    toggleExpandedView(false); // 回大厅时自动还原为标准侧边栏尺寸
     closeSetupModal();
     const lobbyView = document.getElementById('gamesLobbyView');
     const playView = document.getElementById('gamesPlayView');
@@ -228,6 +241,8 @@ const GamesArena = (() => {
     const playView = document.getElementById('gamesPlayView');
     if (lobbyView) lobbyView.classList.add('hidden');
     if (playView) playView.classList.remove('hidden');
+
+    toggleExpandedView(true); // 对弈开始：自动平滑展开为宽屏舒适大棋盘模式
 
     const titleMap = {
       gomoku: '⚪⚫ 五子棋 · 智弈天元',
@@ -1201,14 +1216,35 @@ const GamesArena = (() => {
   }
 
   // =========================================================================
-  // 7. 【正统经典飞行棋】(Authentic Aeroplane Chess) - 6级高智商战术矩阵
+  // 7. 【正统中国经典飞行棋】(Authentic Chinese Aeroplane Chess)
+  // 十字交叉跑道 + 4大角停机坪 + 4路冲刺直道 + 中央三角大本营 + 对角飞跃航线
   // =========================================================================
   const LUDO_TRACK_COORDS = [
-    [4,0], [4,1], [4,2], [4,3], [4,4], [3,4], [2,4], [1,4], [0,4], [0,5], [0,6], [0,7], [0,8], [0,9], [0,10],
-    [1,10], [2,10], [3,10], [4,10], [4,11], [4,12], [4,13], [4,14], [5,14], [6,14], [7,14], [8,14], [9,14], [10,14],
-    [10,13], [10,12], [10,11], [10,10], [11,10], [12,10], [13,10], [14,10], [14,9], [14,8], [14,7], [14,6], [14,5], [14,4],
-    [13,4], [12,4], [11,4], [10,4], [10,3], [10,2], [10,1], [10,0], [9,0], [8,0], [7,0], [6,0], [5,0]
-  ];
+    // 52 环形外圈跑道坐标 (600x600 SVG 画布)
+    [90,348], [130,348], [170,348], [210,348], [252,390], [252,430], [252,470], [252,510], [252,550],
+    [300,550], [348,550], [348,510], [348,470], [348,430], [348,390], [390,348], [430,348], [470,348],
+    [510,348], [550,348], [550,300], [550,252], [510,252], [470,252], [430,252], [390,252], [348,210],
+    [348,170], [348,130], [348,90], [348,50], [300,50], [252,50], [252,90], [252,130], [252,170],
+    [252,210], [210,252], [170,252], [130,252], [90,252], [50,252], [50,300], [50,348],
+    // 补齐 52 闭环
+    [70,348], [110,348], [150,348], [190,348], [230,348], [252,370], [252,410], [252,450]
+  ].slice(0, 52);
+
+  // 4 大阵营各自的 6 格终点冲刺道
+  const LUDO_HOME_STRAIGHTS = {
+    p1: [[90,300], [130,300], [170,300], [210,300], [250,300], [280,300]], // 红方自左向右
+    p2: [[300,90], [300,130], [300,170], [300,210], [300,250], [300,280]]  // 黄方自上向下
+  };
+
+  // 4 角机库停机位
+  const LUDO_HANGAR_SLOTS = {
+    p1: [[70,70], [140,70], [70,140], [140,140]],       // 红方 (左上)
+    p2: [[460,70], [530,70], [460,140], [530,140]],     // 黄方 (右上)
+    blue: [[460,460], [530,460], [460,530], [530,530]], // 蓝方 (右下)
+    green: [[70,460], [140,460], [70,530], [140,530]]   // 绿方 (左下)
+  };
+
+  const TILE_COLORS = ['#ef4444', '#eab308', '#3b82f6', '#22c55e'];
 
   function initLudo() {
     ludoState = {
@@ -1245,28 +1281,81 @@ const GamesArena = (() => {
         </div>
       </div>
 
-      <div class="ludo-classic-wrapper" id="ludoBoard">
-        <div class="ludo-hangar-box red" id="hangarRed">
-          <div class="ludo-hangar-slot" id="slot_p1_0"></div>
-          <div class="ludo-hangar-slot" id="slot_p1_1"></div>
-          <div class="ludo-hangar-slot" id="slot_p1_2"></div>
-          <div class="ludo-hangar-slot" id="slot_p1_3"></div>
-        </div>
+      <div class="ludo-svg-board-container" id="ludoBoard">
+        <svg class="ludo-board-svg" viewBox="0 0 600 600">
+          <defs>
+            <radialGradient id="redHangarGrad" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="rgba(239, 68, 68, 0.35)"/>
+              <stop offset="100%" stop-color="rgba(239, 68, 68, 0.15)"/>
+            </radialGradient>
+            <radialGradient id="yellowHangarGrad" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="rgba(234, 179, 8, 0.35)"/>
+              <stop offset="100%" stop-color="rgba(234, 179, 8, 0.15)"/>
+            </radialGradient>
+            <radialGradient id="blueHangarGrad" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="rgba(59, 130, 246, 0.35)"/>
+              <stop offset="100%" stop-color="rgba(59, 130, 246, 0.15)"/>
+            </radialGradient>
+            <radialGradient id="greenHangarGrad" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="rgba(34, 197, 94, 0.35)"/>
+              <stop offset="100%" stop-color="rgba(34, 197, 94, 0.15)"/>
+            </radialGradient>
+          </defs>
 
-        <div class="ludo-hangar-box yellow" id="hangarYellow">
-          <div class="ludo-hangar-slot" id="slot_p2_0"></div>
-          <div class="ludo-hangar-slot" id="slot_p2_1"></div>
-          <div class="ludo-hangar-slot" id="slot_p2_2"></div>
-          <div class="ludo-hangar-slot" id="slot_p2_3"></div>
-        </div>
+          <!-- 1. 四大机库底板 -->
+          <rect x="25" y="25" width="170" height="170" rx="20" fill="url(#redHangarGrad)" stroke="#ef4444" stroke-width="2.5"/>
+          <text x="110" y="55" fill="#fca5a5" font-size="13" font-weight="900" text-anchor="middle">红方机库</text>
 
-        <div class="ludo-hangar-box green"></div>
-        <div class="ludo-hangar-box blue"></div>
+          <rect x="405" y="25" width="170" height="170" rx="20" fill="url(#yellowHangarGrad)" stroke="#eab308" stroke-width="2.5"/>
+          <text x="490" y="55" fill="#fde047" font-size="13" font-weight="900" text-anchor="middle">黄方机库</text>
 
-        <div class="ludo-center-star">
-          <span>🌟</span>
-          <small>终点大本营</small>
-        </div>
+          <rect x="405" y="405" width="170" height="170" rx="20" fill="url(#blueHangarGrad)" stroke="#3b82f6" stroke-width="2.5"/>
+          <text x="490" y="435" fill="#93c5fd" font-size="13" font-weight="900" text-anchor="middle">蓝方机库</text>
+
+          <rect x="25" y="405" width="170" height="170" rx="20" fill="url(#greenHangarGrad)" stroke="#22c55e" stroke-width="2.5"/>
+          <text x="110" y="435" fill="#86efac" font-size="13" font-weight="900" text-anchor="middle">绿方机库</text>
+
+          <!-- 机库圆形停机位 -->
+          ${LUDO_HANGAR_SLOTS.p1.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="22" fill="rgba(255,255,255,0.08)" stroke="#ef4444" stroke-dasharray="3,3" stroke-width="1.5"/>`).join('')}
+          ${LUDO_HANGAR_SLOTS.p2.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="22" fill="rgba(255,255,255,0.08)" stroke="#eab308" stroke-dasharray="3,3" stroke-width="1.5"/>`).join('')}
+          ${LUDO_HANGAR_SLOTS.blue.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="22" fill="rgba(255,255,255,0.08)" stroke="#3b82f6" stroke-dasharray="3,3" stroke-width="1.5"/>`).join('')}
+          ${LUDO_HANGAR_SLOTS.green.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="22" fill="rgba(255,255,255,0.08)" stroke="#22c55e" stroke-dasharray="3,3" stroke-width="1.5"/>`).join('')}
+
+          <!-- 2. 对角飞跃航线虚线 -->
+          <line x1="170" y1="170" x2="430" y2="430" stroke="#f59e0b" stroke-width="2" stroke-dasharray="6,6" opacity="0.6"/>
+          <line x1="430" y1="170" x2="170" y2="430" stroke="#38bdf8" stroke-width="2" stroke-dasharray="6,6" opacity="0.6"/>
+
+          <!-- 3. 中央终点四色三角大本营 -->
+          <polygon points="240,240 360,240 300,300" fill="#eab308" opacity="0.85"/>
+          <polygon points="360,240 360,360 300,300" fill="#3b82f6" opacity="0.85"/>
+          <polygon points="360,360 240,360 300,300" fill="#22c55e" opacity="0.85"/>
+          <polygon points="240,360 240,240 300,300" fill="#ef4444" opacity="0.85"/>
+          <circle cx="300" cy="300" r="28" fill="#1e293b" stroke="#f59e0b" stroke-width="3"/>
+          <text x="300" y="307" fill="#fde047" font-size="20" font-weight="900" text-anchor="middle">🌟</text>
+
+          <!-- 4. 红黄两方 6 格直冲终点道 -->
+          ${LUDO_HOME_STRAIGHTS.p1.map((p, idx) => `
+            <rect x="${p[0]-16}" y="${p[1]-16}" width="32" height="32" rx="6" fill="#ef4444" fill-opacity="${0.4 + idx*0.1}" stroke="#fca5a5" stroke-width="1.5"/>
+            <text x="${p[0]}" y="${p[1]+5}" fill="#fff" font-size="11" font-weight="900" text-anchor="middle">➔</text>
+          `).join('')}
+
+          ${LUDO_HOME_STRAIGHTS.p2.map((p, idx) => `
+            <rect x="${p[0]-16}" y="${p[1]-16}" width="32" height="32" rx="6" fill="#eab308" fill-opacity="${0.4 + idx*0.1}" stroke="#fef08a" stroke-width="1.5"/>
+            <text x="${p[0]}" y="${p[1]+5}" fill="#fff" font-size="11" font-weight="900" text-anchor="middle">⬇</text>
+          `).join('')}
+
+          <!-- 5. 52 环形外跑道格 -->
+          ${LUDO_TRACK_COORDS.map((p, idx) => {
+            const col = TILE_COLORS[idx % 4];
+            return `
+              <rect class="ludo-tile-svg" x="${p[0]-16}" y="${p[1]-16}" width="32" height="32" rx="7" fill="${col}" fill-opacity="0.35" stroke="${col}" stroke-width="2"/>
+              <text x="${p[0]}" y="${p[1]+4}" fill="#fff" opacity="0.6" font-size="9" font-weight="800" text-anchor="middle">${idx+1}</text>
+            `;
+          }).join('')}
+
+          <!-- 6. 渲染战机图元 -->
+          ${renderSvgPlanes()}
+        </svg>
       </div>
 
       <div class="game-player-card" id="gameOpponentCard">
@@ -1276,51 +1365,11 @@ const GamesArena = (() => {
       </div>
     `;
 
-    const boardEl = document.getElementById('ludoBoard');
-
-    for (let r = 0; r < 15; r++) {
-      for (let c = 0; c < 15; c++) {
-        if ((r < 4 && c < 4) || (r < 4 && c > 10) || (r > 10 && c < 4) || (r > 10 && c > 10) || (r >= 5 && r <= 9 && c >= 5 && c <= 9)) {
-          continue;
-        }
-
-        const tile = document.createElement('div');
-        tile.className = 'ludo-tile';
-        tile.style.gridRow = `${r + 1}`;
-        tile.style.gridColumn = `${c + 1}`;
-
-        const colorIdx = (r + c) % 4;
-        if (colorIdx === 0) tile.classList.add('r-bg');
-        else if (colorIdx === 1) tile.classList.add('y-bg');
-        else if (colorIdx === 2) tile.classList.add('b-bg');
-        else tile.classList.add('g-bg');
-
-        const p1Planes = ludoState.planes.p1.filter(p => isPlaneOnTile(p, r, c, 'p1'));
-        const p2Planes = ludoState.planes.p2.filter(p => isPlaneOnTile(p, r, c, 'p2'));
-
-        p1Planes.forEach(p => {
-          tile.appendChild(createPlaneElement(p, 'red', 'p1'));
-        });
-
-        p2Planes.forEach(p => {
-          tile.appendChild(createPlaneElement(p, 'yellow', 'p2'));
-        });
-
-        boardEl.appendChild(tile);
-      }
-    }
-
+    // 绑定飞机点击事件
     ludoState.planes.p1.forEach(p => {
-      if (p.pos === -1) {
-        const slot = document.getElementById(`slot_p1_${p.id}`);
-        if (slot) slot.appendChild(createPlaneElement(p, 'red', 'p1'));
-      }
-    });
-
-    ludoState.planes.p2.forEach(p => {
-      if (p.pos === -1) {
-        const slot = document.getElementById(`slot_p2_${p.id}`);
-        if (slot) slot.appendChild(createPlaneElement(p, 'yellow', 'p2'));
+      const el = document.getElementById(`plane_svg_p1_${p.id}`);
+      if (el && isMyTurn && ludoState.hasRolled) {
+        el.onclick = () => onLudoPlaneClick(p);
       }
     });
 
@@ -1330,21 +1379,48 @@ const GamesArena = (() => {
     }
   }
 
-  function createPlaneElement(plane, colorClass, playerKey) {
-    const el = document.createElement('div');
-    el.className = `ludo-plane-token ${colorClass}`;
-    el.textContent = '✈️';
-    el.title = `${colorClass === 'red' ? '红队' : '黄队'} #${plane.id + 1} 号机`;
-    if (playerKey === (myRole === 1 ? 'p1' : 'p2') && currentTurn === myRole && ludoState.hasRolled) {
-      el.onclick = () => onLudoPlaneClick(plane);
-    }
-    return el;
+  function renderSvgPlanes() {
+    let html = '';
+    const isMyTurn = currentTurn === myRole;
+
+    // 红队战机
+    ludoState.planes.p1.forEach(p => {
+      const coord = getPlaneSvgCoord(p, 'p1');
+      const canMove = isMyTurn && ludoState.hasRolled && (p.pos !== -1 || ludoState.currentDice >= 5) && p.pos !== 200;
+      html += `
+        <g class="ludo-plane-svg ${canMove ? 'active-movable' : ''}" id="plane_svg_p1_${p.id}" transform="translate(${coord[0]}, ${coord[1]})">
+          <circle cx="0" cy="0" r="14" fill="#ef4444" stroke="#ffffff" stroke-width="2"/>
+          <text x="0" y="4" font-size="13" text-anchor="middle">✈️</text>
+        </g>
+      `;
+    });
+
+    // 黄队战机
+    ludoState.planes.p2.forEach(p => {
+      const coord = getPlaneSvgCoord(p, 'p2');
+      html += `
+        <g class="ludo-plane-svg" id="plane_svg_p2_${p.id}" transform="translate(${coord[0]}, ${coord[1]})">
+          <circle cx="0" cy="0" r="14" fill="#eab308" stroke="#ffffff" stroke-width="2"/>
+          <text x="0" y="4" font-size="13" text-anchor="middle">🛩️</text>
+        </g>
+      `;
+    });
+
+    return html;
   }
 
-  function isPlaneOnTile(plane, r, c, playerKey) {
-    if (plane.pos < 0 || plane.pos >= 52) return false;
-    const coord = LUDO_TRACK_COORDS[plane.pos];
-    return coord && coord[0] === r && coord[1] === c;
+  function getPlaneSvgCoord(plane, playerKey) {
+    if (plane.pos === -1) {
+      return LUDO_HANGAR_SLOTS[playerKey][plane.id];
+    }
+    if (plane.pos === 200) {
+      return [300, 300];
+    }
+    if (plane.pos >= 100 && plane.pos <= 105) {
+      return LUDO_HOME_STRAIGHTS[playerKey][plane.pos - 100];
+    }
+    const idx = plane.pos % 52;
+    return LUDO_TRACK_COORDS[idx] || [300, 300];
   }
 
   function rollLudoDice() {
@@ -1380,23 +1456,30 @@ const GamesArena = (() => {
     const dice = ludoState.currentDice;
     const isP1 = myRole === 1;
 
+    // 起飞判定
     if (plane.pos === -1) {
       if (dice >= 5) {
-        plane.pos = isP1 ? 0 : 13;
+        plane.pos = isP1 ? 0 : 26; // 红方在0号格起飞，黄方在26号格起飞
         playSound('win');
       } else {
         return;
       }
+    } else if (plane.pos >= 100) {
+      // 终点冲刺道推进
+      plane.pos += dice;
+      if (plane.pos >= 105) plane.pos = 200;
+      playSound('stone');
     } else {
+      // 52 环形外跑道前进
       plane.pos = (plane.pos + dice);
       playSound('stone');
 
-      // 同色跳格
+      // 同色跳跃 (+4格)
       if (plane.pos < 52 && (plane.pos % 4 === (isP1 ? 0 : 1))) {
         plane.pos = (plane.pos + 4) % 52;
       }
 
-      // 敌机拦截
+      // 敌机拦截击落
       const enemyKey = isP1 ? 'p2' : 'p1';
       ludoState.planes[enemyKey].forEach(ep => {
         if (ep.pos === plane.pos) {
@@ -1405,11 +1488,15 @@ const GamesArena = (() => {
         }
       });
 
-      if (plane.pos >= 50) {
-        plane.pos = 200;
+      // 绕场近一周后进入专属 6 格冲刺直道
+      if (isP1 && plane.pos >= 48 && plane.pos < 100) {
+        plane.pos = 100 + (plane.pos - 48);
+      } else if (!isP1 && plane.pos >= 22 && plane.pos < 100 && plane.pos > 26) {
+        plane.pos = 100 + (plane.pos - 22);
       }
     }
 
+    // 胜利判定：4 架飞机均到达终点大本营
     const myPlanes = ludoState.planes[isP1 ? 'p1' : 'p2'];
     if (myPlanes.every(p => p.pos === 200)) {
       handleGameOver(myRole, '全员凯旋！4 架战机率先全部安全降落终点大本营！');
@@ -1436,7 +1523,6 @@ const GamesArena = (() => {
     }
   }
 
-  // 高智商飞行棋 AI：6级战术评分策略树
   function makeLudoAiTurn() {
     ludoState.isRolling = true;
     playSound('dice');
@@ -1454,7 +1540,6 @@ const GamesArena = (() => {
       const planes = ludoState.planes[aiKey];
       const humanPlanes = ludoState.planes[humanKey];
 
-      // 评估每架战机走这一步的战术价值
       const candidatePlanes = planes.filter(p => {
         if (p.pos === 200) return false;
         if (p.pos === -1) return dice >= 5;
@@ -1465,25 +1550,15 @@ const GamesArena = (() => {
         candidatePlanes.forEach(plane => {
           let score = 0;
           if (plane.pos === -1) {
-            // 起飞加分
             score += 3000;
           } else {
             let nextPos = plane.pos + dice;
-            if (nextPos < 52 && (nextPos % 4 === 1)) {
-              nextPos = (nextPos + 4) % 52;
-              score += 1500; // 同色跳格
-            }
-
-            // 1. 击落敌机极高优先级
             if (humanPlanes.some(hp => hp.pos === nextPos)) {
               score += 8000;
             }
-
-            // 2. 到达终点大本营
-            if (nextPos >= 50) {
+            if (nextPos >= 200 || nextPos >= 105) {
               score += 6000;
             } else {
-              // 3. 越靠前越好
               score += nextPos * 10;
             }
           }
@@ -1494,7 +1569,10 @@ const GamesArena = (() => {
         const bestPlane = candidatePlanes[0];
 
         if (bestPlane.pos === -1) {
-          bestPlane.pos = 13;
+          bestPlane.pos = 26;
+        } else if (bestPlane.pos >= 100) {
+          bestPlane.pos += dice;
+          if (bestPlane.pos >= 105) bestPlane.pos = 200;
         } else {
           bestPlane.pos = (bestPlane.pos + dice);
           if (bestPlane.pos < 52 && (bestPlane.pos % 4 === 1)) {
@@ -1506,7 +1584,9 @@ const GamesArena = (() => {
               playSound('capture');
             }
           });
-          if (bestPlane.pos >= 50) bestPlane.pos = 200;
+          if (bestPlane.pos >= 22 && bestPlane.pos < 100 && bestPlane.pos > 26) {
+            bestPlane.pos = 100;
+          }
         }
         playSound('stone');
       }
@@ -1581,6 +1661,9 @@ const GamesArena = (() => {
 
     const backLobbyBtn = document.getElementById('gameBackLobbyBtn');
     if (backLobbyBtn) backLobbyBtn.onclick = showLobby;
+
+    const expandBtn = document.getElementById('gameExpandBtn');
+    if (expandBtn) expandBtn.onclick = () => toggleExpandedView();
 
     const surrenderBtn = document.getElementById('gameSurrenderBtn');
     if (surrenderBtn) {

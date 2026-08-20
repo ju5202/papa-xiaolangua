@@ -2455,25 +2455,28 @@
 }
 
 .house-card-preview {
-  height: 72px;
+  height: 120px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at 50% 60%, rgba(255, 255, 255, 0.08) 0%, rgba(0, 0, 0, 0.25) 70%);
-  border-radius: 10px;
-  margin-bottom: 10px;
+  background: radial-gradient(circle at 50% 60%, rgba(255, 255, 255, 0.08) 0%, rgba(0, 0, 0, 0.35) 75%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  margin-bottom: 12px;
   position: relative;
   overflow: hidden;
+  padding: 4px;
 }
 
-.house-icon-large {
-  font-size: 40px;
-  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.5));
-  transition: transform 0.2s ease;
+.house-card-preview .house-svg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.house-card:hover .house-icon-large {
-  transform: scale(1.15) rotate(4deg);
+.house-card:hover .house-card-preview .house-svg {
+  transform: scale(1.08) translateY(-2px);
 }
 
 .house-card-body {

@@ -576,8 +576,96 @@
 }
 
 /* ==========================================================================
-   Tier 1: 避风港原木屋 (.cottage-style-lv1 - 3X Grand Detail)
+   高清矢量建筑艺术 (High-Definition Vector House SVG & Micro-Animations)
    ========================================================================== */
+.house-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  filter: drop-shadow(0 10px 22px rgba(4, 8, 24, 0.65));
+}
+
+/* 1. 原木屋炊烟升腾与灯笼微光 */
+.svg-smoke-group .smoke-puff {
+  animation: svg-smoke-anim 2.5s infinite ease-out;
+  transform-origin: center;
+}
+.svg-smoke-group .sp1 { animation-delay: 0s; }
+.svg-smoke-group .sp2 { animation-delay: 0.8s; }
+.svg-smoke-group .sp3 { animation-delay: 1.6s; }
+
+@keyframes svg-smoke-anim {
+  0% { transform: translateY(0) scale(0.7); opacity: 0.8; }
+  100% { transform: translateY(-26px) scale(1.6); opacity: 0; }
+}
+
+.svg-lantern-pulse {
+  animation: svg-lantern-glow 2s infinite ease-in-out alternate;
+}
+@keyframes svg-lantern-glow {
+  0% { fill: #fef08a; filter: drop-shadow(0 0 2px #f59e0b); }
+  100% { fill: #ffffff; filter: drop-shadow(0 0 8px #fbbf24); }
+}
+
+/* 2. 风车叶片匀速旋转 */
+.svg-windmill-blades {
+  animation: svg-spin-windmill 12s linear infinite;
+}
+@keyframes svg-spin-windmill {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 3. 樱花茶庵落樱飞舞与提灯摇曳 */
+.svg-floating-sakura .sakura-petal {
+  display: inline-block;
+  animation: svg-sakura-fall 3.2s infinite ease-in-out;
+}
+.svg-floating-sakura .sp1 { animation-delay: 0s; }
+.svg-floating-sakura .sp2 { animation-delay: 1.1s; }
+.svg-floating-sakura .sp3 { animation-delay: 2.2s; }
+
+@keyframes svg-sakura-fall {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: translate(-35px, 45px) rotate(160deg); opacity: 0; }
+}
+
+.svg-japanese-lantern {
+  animation: svg-lantern-sway 3s infinite ease-in-out alternate;
+  transform-origin: top center;
+}
+@keyframes svg-lantern-sway {
+  0% { transform: rotate(-5deg); }
+  100% { transform: rotate(5deg); }
+}
+
+/* 4. 水上行宫脉冲灵珠 */
+.svg-pulse-orb {
+  animation: svg-water-pulse 2.2s infinite ease-in-out alternate;
+}
+@keyframes svg-water-pulse {
+  0% { transform: scale(1); filter: drop-shadow(0 0 4px #38bdf8); }
+  100% { transform: scale(1.15); filter: drop-shadow(0 0 14px #7dd3fc); }
+}
+
+/* 5. 蓬莱仙阁神圣光晕旋转与祥云浮动 */
+.svg-halo-spin {
+  animation: svg-halo-rotate 20s linear infinite;
+  transform-origin: 160px 100px;
+}
+@keyframes svg-halo-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.svg-celestial-clouds {
+  animation: svg-cloud-float 4s infinite ease-in-out alternate;
+}
+@keyframes svg-cloud-float {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-4px); }
+}
 /* 3D 石砌大烟囱 */
 .cottage-style-lv1 .chimney-complex {
   position: absolute;

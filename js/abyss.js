@@ -203,7 +203,7 @@
             costText: '-50 禅意',
             canAfford: () => (state.zen || 0) >= 50,
             action: (h) => {
-              state.zen = Math.max(0, (state.zen || 0) - 50);
+              spendZen(50, '购买魔药');
               h.maxMp += 30;
               h.mp = h.maxMp;
               h.atk += 8;
@@ -475,13 +475,11 @@
     startRun() {
       if (typeof state.zen !== 'number' || isNaN(state.zen)) state.zen = 2480;
 
-      if (state.zen < 100) {
+      if (!spendZen(100, '进入魔渊挑战')) {
         toast('禅意不足', `进入魔渊需要 100 禅意，当前拥有 ${state.zen} 点禅意。`);
         return;
       }
 
-      state.zen -= 100;
-      recordContribution(100, 'abyssZenSpend');
       persist();
       render();
       sync(true);
