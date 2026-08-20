@@ -1,10 +1,19 @@
 /* ==========================================================================
-   帕帕 · 小南瓜 | 湖畔圣域 — 原生极速频道独立同步引擎 (Zero-Crosstalk Channel Sync)
-   摒弃 MQTT，采用严格频道绑定的 BroadcastChannel + StorageEvent 双重广播通道
-   100% 物理隔离不同频道数据，增量动作合并确保多用户操作不被覆盖
+   帕帕 · 小南瓜 | 湖畔圣域 — 双模极速独立同步引擎 (Hybrid Local & WebRTC P2P Sync)
+   1. 本地层：基于频道绑定的 BroadcastChannel + StorageEvent (同机/任务栏挂件 <0.1ms 内存总线)
+   2. 远程层：基于 WebRTC DataChannel 的端到端加密 P2P 直连 (异地跨电脑远程联通，零中心服务器中转)
+   3. 增量动作合并 (Delta Action) 与严格房间隔离，彻底杜绝数据串扰与相互覆盖
    ========================================================================== */
 
   let broadcast = null;
+  let activePeer = null;
+  let activeConnections = new Map();
+  let isRoomHost = false;
+  let p2pReconnectTimer = null;
+
+  function getCleanChannelId(channel) {
+    return String(channel || 'PAPA-0828').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 16) || 'PAPA0828';
+  }
 
   function getChannelTopic(channel) {
     const chan = String(channel || 'PAPA-0828').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 24) || 'PAPA-0828';
@@ -16,6 +25,7 @@
     const curChan = state.channel || 'PAPA-0828';
     const chanTopic = getChannelTopic(curChan);
 
+    // 1. 初始化本地 BroadcastChannel 通道 (同机多窗口/伴侣悬浮窗)
     if ('BroadcastChannel' in window) {
       try {
         broadcast = new BroadcastChannel(chanTopic);
@@ -28,23 +38,162 @@
       }
     }
 
-    // 跨窗口/跨页面/伴侣悬浮窗 StorageEvent 双重实时监听
+    // 2. 跨窗口/跨页面 StorageEvent 监听
     window.removeEventListener('storage', handleStorageEvent);
     window.addEventListener('storage', handleStorageEvent);
 
+    // 3. 开启远程跨电脑 WebRTC P2P 直连网络
+    initRemoteP2P(curChan);
+
     setSyncText(`已连入独立共养频道 ${curChan}`);
-    // 延迟广播握手包，告知同一频道的伙伴自己已就绪
-    setTimeout(() => broadcastSyncPacket(), 120);
+    setTimeout(() => broadcastSyncPacket(), 150);
   }
 
   function closeChannel() {
+    clearTimeout(p2pReconnectTimer);
+
+    // 关闭本地广播通道
     if (broadcast) {
-      try {
-        broadcast.close();
-      } catch (e) { }
+      try { broadcast.close(); } catch (e) { }
       broadcast = null;
     }
     window.removeEventListener('storage', handleStorageEvent);
+
+    // 关闭全部远程 P2P WebRTC 连接
+    activeConnections.forEach(conn => {
+      try { conn.close(); } catch (e) { }
+    });
+    activeConnections.clear();
+
+    if (activePeer) {
+      try {
+        activePeer.destroy();
+      } catch (e) { }
+      activePeer = null;
+    }
+    isRoomHost = false;
+  }
+
+  // -------------------------------------------------------------------------
+  // WebRTC P2P 房间直连自组网算法 (Zero-Server P2P Mesh)
+  // -------------------------------------------------------------------------
+  function initRemoteP2P(channelId) {
+    if (typeof Peer === 'undefined') {
+      console.warn('[Sync] PeerJS 未加载，运行在纯本地广播模式。');
+      return;
+    }
+
+    const cleanChan = getCleanChannelId(channelId);
+    const hostPeerId = `papa_h_${cleanChan}`;
+    const cleanUserId = String(state.user.id || clientId).replace(/[^a-zA-Z0-9]/g, '').slice(0, 10);
+    const clientPeerId = `papa_c_${cleanChan}_${cleanUserId}_${Math.random().toString(36).slice(2, 6)}`;
+
+    const peerConfig = {
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:global.stun.twilio.com:3478' }
+        ]
+      },
+      debug: 0
+    };
+
+    // 首先尝试作为该频道的 P2P 房主 (Host) 接入
+    try {
+      const hostPeer = new Peer(hostPeerId, peerConfig);
+
+      hostPeer.on('open', (id) => {
+        activePeer = hostPeer;
+        isRoomHost = true;
+        setSyncText(`P2P 空间就绪 · 等待伙伴连入`);
+
+        // 作为房主，接受远方伙伴的连入连接
+        hostPeer.on('connection', (conn) => {
+          setupP2PConnection(conn, true);
+        });
+      });
+
+      hostPeer.on('error', (err) => {
+        if (err.type === 'unavailable-id') {
+          // 该频道的 Host 已存在，当前客户端作为 Client 连入 Host
+          hostPeer.destroy();
+          joinAsClientPeer(clientPeerId, hostPeerId, peerConfig);
+        } else {
+          console.warn('[Sync] P2P Host 连接提示:', err.type);
+        }
+      });
+    } catch (err) {
+      console.warn('[Sync] PeerJS 初始化异常:', err);
+    }
+  }
+
+  function joinAsClientPeer(myPeerId, targetHostId, peerConfig) {
+    try {
+      const clientPeer = new Peer(myPeerId, peerConfig);
+      clientPeer.on('open', () => {
+        activePeer = clientPeer;
+        isRoomHost = false;
+        const conn = clientPeer.connect(targetHostId, {
+          reliable: true,
+          metadata: {
+            userId: state.user.id,
+            userName: state.user.name,
+            userAvatar: state.user.avatar
+          }
+        });
+        setupP2PConnection(conn, false);
+      });
+
+      clientPeer.on('error', (err) => {
+        console.warn('[Sync] P2P 客户端连接提示:', err.type);
+      });
+    } catch (e) {
+      console.warn('[Sync] 加入 P2P 房间异常:', e);
+    }
+  }
+
+  function setupP2PConnection(conn, isHost) {
+    conn.on('open', () => {
+      activeConnections.set(conn.peer, conn);
+      setSyncText(`✨ 远方伙伴已通过 WebRTC 直连`);
+      toast('✦ 远程伙伴已直连', `已与远方的共养伙伴建立 P2P 加密直连信道！`);
+
+      // 握手成功后立即互相同步当前最新庭院快照
+      broadcastSyncPacket();
+    });
+
+    conn.on('data', (data) => {
+      if (!data) return;
+      handleIncomingMessage(data);
+
+      // 如果当前是 Host，并且连接了多位伙伴，负责广播转发
+      if (isHost && activeConnections.size > 1) {
+        activeConnections.forEach((c, peerId) => {
+          if (peerId !== conn.peer && c.open) {
+            try { c.send(data); } catch (e) { }
+          }
+        });
+      }
+    });
+
+    conn.on('close', () => {
+      activeConnections.delete(conn.peer);
+      if (activeConnections.size === 0) {
+        setSyncText(`已连入独立共养频道 ${state.channel}`);
+      }
+
+      // 如果 Host 断开，当前 Client 尝试自动接任升级为 Host
+      if (!isHost && !activePeer?.destroyed) {
+        clearTimeout(p2pReconnectTimer);
+        p2pReconnectTimer = setTimeout(() => {
+          if (state.channel) initRemoteP2P(state.channel);
+        }, 1200);
+      }
+    });
+
+    conn.on('error', () => {
+      activeConnections.delete(conn.peer);
+    });
   }
 
   function handleStorageEvent(event) {
@@ -59,11 +208,14 @@
     } catch (e) { }
   }
 
+  // -------------------------------------------------------------------------
+  // 核心消息分发与增量合并引擎 (Delta Action & Conflict-Free Merging)
+  // -------------------------------------------------------------------------
   function handleIncomingMessage(data) {
     if (!data) return;
     // 严格校验频道：非当前频道的数据 100% 丢弃，绝不串扰
     if (data.channel && data.channel !== state.channel) return;
-    // 过滤本地回环
+    // 过滤本地自身的回环广播
     if (data.senderId && data.senderId === state.user.id) return;
 
     // 1. 飞鸽传书/短信 送达确认回执 (Delivery Receipt ACK)
@@ -191,7 +343,7 @@
       }
     });
 
-    // 2. 智能合并总禅意值 (取最大值避免回滚)
+    // 2. 智能合并总禅意值 (单调递增取最大值，避免被旧快照覆写)
     const mergedZen = Math.max(state.zen || 0, incoming.zen || 0);
     const mergedHeroCoins = Math.max(state.heroCoins || 0, incoming.heroCoins || 0);
     const mergedMarketUnlocked = Array.from(new Set([
@@ -340,6 +492,27 @@
     }
   }
 
+  // 统一分发包至本地 BroadcastChannel 与远程 WebRTC P2P 通道
+  function sendUnifiedPacket(packet) {
+    if (!packet) return;
+
+    // 1. 本地多窗口/悬浮窗广播
+    broadcast?.postMessage(packet);
+
+    // 2. 远程 P2P WebRTC 通道广播
+    if (activeConnections.size > 0) {
+      activeConnections.forEach(conn => {
+        if (conn && conn.open) {
+          try {
+            conn.send(packet);
+          } catch (err) {
+            console.warn('[Sync] P2P 发送失败:', err);
+          }
+        }
+      });
+    }
+  }
+
   function broadcastSyncPacket() {
     const curChan = state.channel || 'PAPA-0828';
     const channelLetters = (state.letters || []).filter(l => !l.channel || l.channel === curChan);
@@ -356,7 +529,7 @@
         letters: channelLetters
       }
     };
-    broadcast?.postMessage(packet);
+    sendUnifiedPacket(packet);
   }
 
   function broadcastDeliveryAck(letterId, recipientId, senderName, senderAvatar) {
@@ -371,7 +544,7 @@
       senderAvatar: senderAvatar || state.user.avatar,
       timestamp: Date.now()
     };
-    broadcast?.postMessage(packet);
+    sendUnifiedPacket(packet);
   }
 
   function broadcastGameAction(actionPayload) {
@@ -385,7 +558,7 @@
       timestamp: Date.now(),
       payload: actionPayload
     };
-    broadcast?.postMessage(packet);
+    sendUnifiedPacket(packet);
   }
 
   function broadcastPetAction(petId, action, stats) {
@@ -401,7 +574,7 @@
       senderAvatar: state.user.avatar,
       timestamp: Date.now()
     };
-    broadcast?.postMessage(packet);
+    sendUnifiedPacket(packet);
   }
 
   function broadcastZenGain(amount, category) {
@@ -416,7 +589,7 @@
       senderAvatar: state.user.avatar,
       timestamp: Date.now()
     };
-    broadcast?.postMessage(packet);
+    sendUnifiedPacket(packet);
   }
 
   function broadcastLetter(letter) {
@@ -430,7 +603,7 @@
       senderAvatar: state.user.avatar,
       timestamp: Date.now()
     };
-    broadcast?.postMessage(packet);
+    sendUnifiedPacket(packet);
   }
 
   function setSyncText(text) {
@@ -440,5 +613,5 @@
     clearTimeout(setSyncText.timeout);
     setSyncText.timeout = setTimeout(() => {
       if ($('#syncText')) $('#syncText').textContent = '实时同步已开启';
-    }, 2200);
+    }, 2400);
   }

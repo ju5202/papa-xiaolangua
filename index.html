@@ -642,7 +642,13 @@
     <div class="modal" id="modal"></div>
   </section>
   <div class="toast-stack" id="toastStack"></div>
-  <!-- 模块化脚本按依赖顺序加载 (原生极速通道，零外部网络依赖) -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script>
+    if (typeof Peer === 'undefined') {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"><\/script>');
+    }
+  </script>
+  <!-- 模块化脚本按依赖顺序加载 -->
   <script src="js/state.js"></script>
   <script src="js/sync.js"></script>
   <script src="js/garden.js"></script>
