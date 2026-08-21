@@ -1,6 +1,6 @@
 {
   "name": "papa-pumpkin-sanctuary",
-  "version": "0.1.34",
+  "version": "0.1.35",
   "description": "帕帕与小南瓜 · 双视界桌面陪伴",
   "author": "ju5202",
   "repository": {
@@ -11,8 +11,8 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron .",
-    "package": "electron-builder --win nsis --config.win.artifactName=帕帕与小南瓜_Setup_${version}.${ext}",
-    "package:portable": "electron-builder --win portable --config.win.artifactName=帕帕与小南瓜.${ext}",
+    "package": "electron-builder --win nsis",
+    "package:portable": "electron-builder --win portable",
     "package:dir": "electron-builder --win dir",
     "publish:github": "electron-builder --win nsis -p always"
   },
@@ -48,7 +48,7 @@
     ],
     "win": {
       "icon": "icon.png",
-      "artifactName": "帕帕与小南瓜_Setup_${version}.${ext}",
+      "artifactName": "papa-pumpkin-sanctuary-Setup-${version}.${ext}",
       "target": [
         {
           "target": "nsis",
