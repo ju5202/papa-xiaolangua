@@ -27,7 +27,16 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build and Publish to GitHub Releases
+      - name: Build Installer
+        run: npm run package
+
+      - name: Publish Release to GitHub
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            dist/*.exe
+            dist/*.blockmap
+            dist/latest.yml
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run publish:github
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
