@@ -30,9 +30,38 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build and Publish to GitHub Releases
+      - name: Build Windows Installer
+        run: npm run package
+
+      - name: Publish Release via GitHub CLI
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DEBUG: electron-builder
-        run: npm run publish:github
+        shell: pwsh
+        run: |
+          $exeFiles = Get-ChildItem -Path "dist" -Filter "*Setup*.exe" -File
+          $blockmapFiles = Get-ChildItem -Path "dist" -Filter "*.blockmap" -File
+          $latestFile = Get-Item -Path "dist/latest.yml" -ErrorAction SilentlyContinue
+
+          $uploadList = @()
+          if ($exeFiles) { $uploadList += $exeFiles.FullName }
+          if ($blockmapFiles) { $uploadList += $blockmapFiles.FullName }
+          if ($latestFile) { $uploadList += $latestFile.FullName }
+
+          Write-Host "Found $($uploadList.Count) artifacts to upload:"
+          $uploadList | ForEach-Object { Write-Host " -> $_" }
+
+          if ($uploadList.Count -eq 0) {
+            Write-Error "No build artifacts found in dist/"
+            exit 1
+          }
+
+          # 优先使用 gh release upload 覆盖更新，若 Release 尚不存在则自动创建
+          $releaseExists = gh release view ${{ github.ref_name }} 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Release ${{ github.ref_name }} exists. Uploading assets..."
+            gh release upload ${{ github.ref_name }} $uploadList --clobber
+          } else {
+            Write-Host "Creating new Release ${{ github.ref_name }} with assets..."
+            gh release create ${{ github.ref_name }} $uploadList --title "Release ${{ github.ref_name }}" --generate-notes
+          }
+          Write-Host "Release ${{ github.ref_name }} published successfully!"
