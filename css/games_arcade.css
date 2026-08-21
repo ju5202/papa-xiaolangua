@@ -1,0 +1,264 @@
+/* ==========================================================================
+   帕帕 · 小南瓜 | 游艺街机阁 — 经典动作与射击街机样式 (Arcade Games Styles)
+   包含：《水火共生 · 灵泉圣殿》、《合金双雄 · 魂斗先锋》、《星际雷霆 · 极光战机》
+   ========================================================================== */
+
+/* 街机大厅分类导航卡片 */
+.games-category-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 0 4px;
+}
+
+.games-cat-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.games-cat-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.games-cat-btn.active {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(217, 119, 6, 0.35));
+  border-color: #f59e0b;
+  color: #fde047;
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.25);
+}
+
+.games-cat-btn .cat-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.3);
+  color: #fef08a;
+}
+
+/* 街机游戏通用 Canvas 容器 */
+.arcade-arena-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 520px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #090d16;
+  border: 1.5px solid rgba(148, 163, 184, 0.18);
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.8), 0 10px 30px rgba(0, 0, 0, 0.5);
+  transform: scale(var(--game-scale, 1));
+  transform-origin: center center;
+  transition: transform 0.2s ease;
+}
+
+.arcade-canvas-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+}
+
+.arcade-canvas-box canvas {
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background: #05070e;
+}
+
+/* 顶部街机 HUD 控制面板 */
+.arcade-hud-bar {
+  position: absolute;
+  top: 10px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.arcade-hud-left,
+.arcade-hud-center,
+.arcade-hud-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  pointer-events: auto;
+}
+
+.hud-stat-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 12px;
+  font-weight: 800;
+  color: #e2e8f0;
+}
+
+.hud-stat-pill.p1 {
+  border-color: rgba(56, 189, 248, 0.5);
+  color: #38bdf8;
+}
+
+.hud-stat-pill.p2 {
+  border-color: rgba(244, 63, 94, 0.5);
+  color: #fb7185;
+}
+
+.hud-stat-pill.score {
+  border-color: rgba(234, 179, 8, 0.5);
+  color: #fde047;
+}
+
+/* Boss 血条覆盖层 */
+.arcade-boss-hud {
+  position: absolute;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70%;
+  max-width: 480px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid #ef4444;
+  border-radius: 10px;
+  padding: 6px 14px;
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.3);
+  z-index: 9;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.arcade-boss-title {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 900;
+  color: #fca5a5;
+}
+
+.arcade-boss-hp-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.arcade-boss-hp-bar {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+  border-radius: 4px;
+  transition: width 0.15s ease-out;
+}
+
+/* 底部操作快捷提示卡片 */
+.arcade-controls-hint {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 4px 16px;
+  font-size: 11px;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.arcade-controls-hint kbd {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 10px;
+  font-family: inherit;
+  color: #f1f5f9;
+  font-weight: 700;
+}
+
+/* 街机触控/虚拟按钮（移动端或鼠标备用） */
+.arcade-touch-bar {
+  position: absolute;
+  bottom: 16px;
+  left: 20px;
+  right: 20px;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.touch-btn-cluster {
+  display: flex;
+  gap: 10px;
+  pointer-events: auto;
+}
+
+.arcade-touch-btn {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(30, 41, 59, 0.7);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  touch-action: manipulation;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+  transition: transform 0.1s ease, background 0.1s ease;
+}
+
+.arcade-touch-btn:active {
+  transform: scale(0.92);
+  background: rgba(245, 158, 11, 0.6);
+  border-color: #f59e0b;
+}
+
+.arcade-touch-btn.bomb {
+  background: rgba(239, 68, 68, 0.6);
+  border-color: #ef4444;
+}

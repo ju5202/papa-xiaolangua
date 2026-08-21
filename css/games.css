@@ -23,7 +23,7 @@
               top 0.3s ease, bottom 0.3s ease;
 }
 
-/* 宽屏沉浸对弈模式（消除棋盘拥挤感，棋格大幅放大） */
+/* 视野模式：标准视野、宽屏沉浸、全屏专注 */
 .games-stage.playing-expanded {
   left: 60px;
   right: 60px;
@@ -31,6 +31,16 @@
   bottom: 16px;
   z-index: 35;
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), 0 0 45px rgba(245, 158, 11, 0.2);
+}
+
+.games-stage.playing-fullscreen {
+  left: 12px;
+  right: 12px;
+  top: 12px;
+  bottom: 12px;
+  z-index: 55;
+  border-radius: 18px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.95), 0 0 60px rgba(245, 158, 11, 0.25);
 }
 
 .games-stage.hidden,
@@ -350,6 +360,74 @@
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
 }
 
+/* 联机对弈阵营选择 Cards */
+.setup-roles-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.setup-role-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #cbd5e1;
+  text-align: center;
+}
+
+.setup-role-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #38bdf8;
+}
+
+.setup-role-card.active {
+  background: rgba(56, 189, 248, 0.16);
+  border-color: #38bdf8;
+  color: #38bdf8;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.3);
+}
+
+.setup-role-card .role-avatar {
+  font-size: 24px;
+}
+
+.setup-role-card b {
+  font-size: 12.5px;
+}
+
+.setup-role-card small {
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.invite-partner-btn {
+  width: 100%;
+  padding: 8px 0;
+  margin-top: 10px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.3));
+  border: 1.5px solid rgba(16, 185, 129, 0.5);
+  color: #6ee7b7;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.invite-partner-btn:hover {
+  background: rgba(16, 185, 129, 0.35);
+  box-shadow: 0 0 14px rgba(16, 185, 129, 0.4);
+  color: #fff;
+}
+
 .setup-start-btn {
   width: 100%;
   padding: 12px;
@@ -448,6 +526,60 @@
   gap: 8px;
 }
 
+/* 棋盘尺寸无级调节工具条 */
+.game-scale-toolbar {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(130, 160, 220, 0.35);
+  border-radius: 8px;
+  padding: 2px 5px;
+  gap: 3px;
+  backdrop-filter: blur(6px);
+}
+
+.game-scale-btn {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.game-scale-btn:hover {
+  background: rgba(56, 189, 248, 0.3);
+  border-color: rgba(56, 189, 248, 0.6);
+  color: #fff;
+}
+
+.game-scale-btn:active {
+  transform: scale(0.92);
+}
+
+.game-scale-btn.reset-btn {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.game-scale-val {
+  font-size: 11px;
+  font-weight: 800;
+  color: #38bdf8;
+  min-width: 36px;
+  text-align: center;
+  user-select: none;
+  font-family: var(--mono, monospace);
+}
+
 .game-action-btn {
   display: flex;
   align-items: center;
@@ -488,9 +620,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  overflow: hidden;
+  gap: 20px;
+  overflow: auto;
   position: relative;
+  padding: 10px 16px;
+  --game-scale: 1.0;
+}
+
+.gomoku-board-container,
+.animals-board-container,
+.xiangqi-board-container,
+.ludo-svg-board-container {
+  transform: scale(var(--game-scale, 1));
+  transform-origin: center center;
+  transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+  flex-shrink: 0;
 }
 
 .game-player-card {

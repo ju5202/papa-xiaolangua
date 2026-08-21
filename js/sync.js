@@ -343,10 +343,17 @@
       return;
     }
 
-    // 2. 棋阁对弈动作实时同步
+    // 2. 棋阁对弈动作与联机邀请实时同步
     if (data.type === 'game_action') {
       if (typeof GamesArena !== 'undefined') {
         GamesArena.handleRemoteAction(data.payload, data);
+      }
+      return;
+    }
+
+    if (data.type === 'game_invite') {
+      if (typeof GamesArena !== 'undefined') {
+        GamesArena.handleRemoteInvite(data);
       }
       return;
     }
@@ -680,6 +687,20 @@
       senderAvatar: state.user.avatar,
       timestamp: Date.now(),
       payload: actionPayload
+    };
+    sendUnifiedPacket(packet);
+  }
+
+  function broadcastGameInvite(invitePayload) {
+    const curChan = state.channel || 'PAPA-0828';
+    const packet = {
+      type: 'game_invite',
+      channel: curChan,
+      senderId: state.user.id,
+      senderName: state.user.name,
+      senderAvatar: state.user.avatar,
+      timestamp: Date.now(),
+      payload: invitePayload
     };
     sendUnifiedPacket(packet);
   }

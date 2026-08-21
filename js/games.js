@@ -13,6 +13,12 @@ const GamesArena = (() => {
   let myRole = 1; // 1 (先手/蓝/红/黑) | 2 (后手/红/黄/白)
   let currentTurn = 1; // 1: P1, 2: P2
   let isGameOver = false;
+  let remoteOpponentName = null;
+  let remoteOpponentAvatar = null;
+
+  // 缩放与视野状态
+  let viewMode = 'expanded'; // 'standard' | 'expanded' | 'fullscreen'
+  let gameScale = 1.0;
 
   // 各小游戏独立状态
   let gomokuState = null;
@@ -24,6 +30,7 @@ const GamesArena = (() => {
   let pendingGameKey = 'gomoku';
   let pendingMode = 'ai';
   let pendingDiff = 'hard';
+  let pendingRole = 1;
 
   // -------------------------------------------------------------------------
   // 1. Web Audio 原生音效合成
@@ -106,24 +113,79 @@ const GamesArena = (() => {
   }
 
   // -------------------------------------------------------------------------
-  // 2. 游戏配置弹层与大厅控制器
+  // 2. 视野模式与缩放控制器 (View Modes & Zoom Scale Controller)
   // -------------------------------------------------------------------------
-  let isExpanded = false;
-  function toggleExpandedView(force) {
+  function initScaleAndMode() {
+    const savedScale = parseFloat(localStorage.getItem('sanctuary_game_scale') || '1.0');
+    if (!isNaN(savedScale)) {
+      gameScale = Math.min(1.4, Math.max(0.7, savedScale));
+    }
+    applyGameScale();
+  }
+
+  function applyGameScale() {
+    const arena = document.getElementById('gameArenaContent');
+    const scaleVal = document.getElementById('gameScaleVal');
+    if (arena) {
+      arena.style.setProperty('--game-scale', gameScale);
+    }
+    if (scaleVal) {
+      scaleVal.textContent = `${Math.round(gameScale * 100)}%`;
+    }
+    localStorage.setItem('sanctuary_game_scale', gameScale.toString());
+  }
+
+  function setGameScale(scale) {
+    gameScale = Math.min(1.4, Math.max(0.7, Math.round(scale * 100) / 100));
+    applyGameScale();
+  }
+
+  function adjustGameScale(delta) {
+    setGameScale(gameScale + delta);
+  }
+
+  function resetGameScale() {
+    setGameScale(1.0);
+  }
+
+  function setViewMode(mode) {
+    viewMode = mode;
     const stage = document.getElementById('gamesStage');
     const btn = document.getElementById('gameExpandBtn');
     if (!stage) return;
-    isExpanded = typeof force === 'boolean' ? force : !isExpanded;
-    stage.classList.toggle('playing-expanded', isExpanded);
-    if (btn) {
-      btn.textContent = isExpanded ? '🔍 还原视野' : '🔍 宽屏放大';
+
+    stage.classList.remove('playing-expanded', 'playing-fullscreen');
+
+    if (viewMode === 'expanded') {
+      stage.classList.add('playing-expanded');
+      if (btn) btn.textContent = '🔍 宽屏展开';
+    } else if (viewMode === 'fullscreen') {
+      stage.classList.add('playing-fullscreen');
+      if (btn) btn.textContent = '🔲 全屏沉浸';
+    } else {
+      if (btn) btn.textContent = '📱 标准视野';
+    }
+  }
+
+  function cycleViewMode() {
+    if (viewMode === 'standard') {
+      setViewMode('expanded');
+    } else if (viewMode === 'expanded') {
+      setViewMode('fullscreen');
+    } else {
+      setViewMode('standard');
     }
   }
 
   function showLobby() {
+    if (typeof TempleGame !== 'undefined') TempleGame.stop();
+    if (typeof ContraGame !== 'undefined') ContraGame.stop();
+    if (typeof ThunderGame !== 'undefined') ThunderGame.stop();
+    if (typeof TurtleSoupGame !== 'undefined') TurtleSoupGame.stop();
+
     currentGame = null;
     isGameOver = false;
-    toggleExpandedView(false); // 回大厅时自动还原为标准侧边栏尺寸
+    setViewMode('standard'); // 回大厅时自动还原为标准侧边栏尺寸
     closeSetupModal();
     const lobbyView = document.getElementById('gamesLobbyView');
     const playView = document.getElementById('gamesPlayView');
@@ -134,10 +196,18 @@ const GamesArena = (() => {
 
   function renderLobbyStats() {
     const stats = JSON.parse(localStorage.getItem('sanctuary_games_stats') || '{}');
-    ['gomoku', 'animals', 'xiangqi', 'ludo'].forEach(g => {
-      const s = stats[g] || { wins: 0, losses: 0 };
+    ['gomoku', 'animals', 'xiangqi', 'ludo', 'temple', 'contra', 'thunder', 'soup'].forEach(g => {
+      const s = stats[g] || { wins: 0, losses: 0, score: 0 };
       const el = document.getElementById(`${g}StatText`);
-      if (el) el.innerHTML = `胜: <b>${s.wins}</b> / 负: <b>${s.losses}</b>`;
+      if (el) {
+        if (g === 'soup') {
+          el.innerHTML = `破案总数: <b>${s.wins || 0} 案</b>`;
+        } else if (g === 'temple' || g === 'contra' || g === 'thunder') {
+          el.innerHTML = `最高战绩: <b>${s.score || s.wins * 1000 || 0}</b>`;
+        } else {
+          el.innerHTML = `胜: <b>${s.wins}</b> / 负: <b>${s.losses}</b>`;
+        }
+      }
     });
   }
 
@@ -145,12 +215,52 @@ const GamesArena = (() => {
     pendingGameKey = gameKey;
     pendingMode = 'ai';
     pendingDiff = 'hard';
+    pendingRole = 1;
 
     const gameNames = {
+      soup: '🍲 灵犀海龟汤 · 迷雾探案 (情境推理)',
+      temple: '💧🔥 水火共生 · 灵泉圣殿 (森林冰火人)',
+      contra: '🔫💥 合金双雄 · 魂斗先锋 (魂斗罗)',
+      thunder: '✈️⚡ 星际雷霆 · 极光战机 (雷霆战机)',
       gomoku: '⚪⚫ 五子棋 · 智弈天元',
       animals: '🐘🦁 斗兽棋 · 丛林争霸',
       xiangqi: '🪓👑 中国象棋 · 楚河汉界',
       ludo: '✈️🎲 正统飞行棋 · 星际航线'
+    };
+
+    const roleDefinitions = {
+      soup: [
+        { role: 1, avatar: '🐢', title: '大侦探 帕帕', sub: '洞察真相 · 逻辑推理' },
+        { role: 2, avatar: '🎃', title: '探案官 小南瓜', sub: '灵感推演 · 案情复盘' }
+      ],
+      temple: [
+        { role: 1, avatar: '🐢', title: '水灵龟 帕帕', sub: '水系免疫 · 踏板解密' },
+        { role: 2, avatar: '🎃', title: '炽焰小南瓜', sub: '火系免疫 · 机关引燃' }
+      ],
+      contra: [
+        { role: 1, avatar: '🐢', title: '装甲先锋 帕帕', sub: '突击火力 · 极光防御' },
+        { role: 2, avatar: '🎃', title: '爆破专家 小南瓜', sub: '烈焰重炮 · 弹幕突破' }
+      ],
+      thunder: [
+        { role: 1, avatar: '🐢', title: '极光神龟号', sub: '等离子矩阵 · 防御光幕' },
+        { role: 2, avatar: '🎃', title: '炽焰战梭号', sub: '高爆粒子 · 狂暴暴走' }
+      ],
+      gomoku: [
+        { role: 1, avatar: '⚫', title: '执黑攻擂', sub: '先手出招 · 执黑先行' },
+        { role: 2, avatar: '⚪', title: '执白应战', sub: '后手守擂 · 执白应子' }
+      ],
+      animals: [
+        { role: 1, avatar: '🔵', title: '蓝方守南', sub: '先手出阵 · 守护南林' },
+        { role: 2, avatar: '🔴', title: '红方进北', sub: '后手出击 · 奇袭北原' }
+      ],
+      xiangqi: [
+        { role: 1, avatar: '🔴', title: '红方执帥', sub: '先手发兵 · 席卷楚汉' },
+        { role: 2, avatar: '⚫', title: '黑方执將', sub: '后手运筹 · 严阵以待' }
+      ],
+      ludo: [
+        { role: 1, avatar: '🔴', title: '红队先锋', sub: '先手掷骰 · 红色航道' },
+        { role: 2, avatar: '🟡', title: '黄队王牌', sub: '后手启航 · 黄色航道' }
+      ]
     };
 
     let overlay = document.getElementById('gameSetupOverlay');
@@ -160,6 +270,8 @@ const GamesArena = (() => {
       overlay.id = 'gameSetupOverlay';
       document.getElementById('gamesStage').appendChild(overlay);
     }
+
+    const currentRoles = roleDefinitions[gameKey] || roleDefinitions.gomoku;
 
     overlay.classList.remove('hidden');
     overlay.innerHTML = `
@@ -183,6 +295,7 @@ const GamesArena = (() => {
           </div>
         </div>
 
+        <!-- AI 难度选择 -->
         <div id="aiDifficultySection">
           <span class="setup-section-label">2. 选择 AI 棋力等级</span>
           <div class="setup-diff-chips">
@@ -190,6 +303,24 @@ const GamesArena = (() => {
             <div class="diff-chip" data-diff="medium">进阶段位</div>
             <div class="diff-chip active" data-diff="hard">棋圣巅峰</div>
           </div>
+        </div>
+
+        <!-- PVP 阵营与先手选择 -->
+        <div id="pvpRoleSection" style="display: none;">
+          <span class="setup-section-label">2. 选择你的对战阵营与先后手</span>
+          <div class="setup-roles-grid">
+            <div class="setup-role-card active" data-role="1">
+              <span class="role-avatar">${currentRoles[0].avatar}</span>
+              <b>${currentRoles[0].title}</b>
+              <small>${currentRoles[0].sub}</small>
+            </div>
+            <div class="setup-role-card" data-role="2">
+              <span class="role-avatar">${currentRoles[1].avatar}</span>
+              <b>${currentRoles[1].title}</b>
+              <small>${currentRoles[1].sub}</small>
+            </div>
+          </div>
+          <button class="invite-partner-btn" id="sendGameInviteBtn">📢 广播邀请远方伙伴对局</button>
         </div>
 
         <button class="setup-start-btn" id="startConfiguredGameBtn">🚀 开始对弈博弈</button>
@@ -205,7 +336,9 @@ const GamesArena = (() => {
         btn.classList.add('active');
         pendingMode = btn.dataset.mode;
         const aiSec = document.getElementById('aiDifficultySection');
+        const pvpSec = document.getElementById('pvpRoleSection');
         if (aiSec) aiSec.style.display = pendingMode === 'ai' ? 'block' : 'none';
+        if (pvpSec) pvpSec.style.display = pendingMode === 'pvp' ? 'block' : 'none';
       };
     });
 
@@ -218,9 +351,34 @@ const GamesArena = (() => {
       };
     });
 
+    const roleCards = overlay.querySelectorAll('.setup-role-card');
+    roleCards.forEach(card => {
+      card.onclick = () => {
+        roleCards.forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        pendingRole = parseInt(card.dataset.role, 10) || 1;
+      };
+    });
+
+    const inviteBtn = document.getElementById('sendGameInviteBtn');
+    if (inviteBtn) {
+      inviteBtn.onclick = () => {
+        if (typeof SyncEngine !== 'undefined' && typeof SyncEngine.broadcastGameInvite === 'function') {
+          SyncEngine.broadcastGameInvite({
+            game: pendingGameKey,
+            inviterRole: pendingRole,
+            inviterName: state.user?.name || '伙伴'
+          });
+        }
+        if (typeof toast === 'function') {
+          toast('💌 对弈邀请已发出', '已向当前共养频道广播对局邀请，伙伴可一键应战！');
+        }
+      };
+    }
+
     document.getElementById('startConfiguredGameBtn').onclick = () => {
       closeSetupModal();
-      startSelectedGame(pendingGameKey, pendingMode, pendingDiff, 1);
+      startSelectedGame(pendingGameKey, pendingMode, pendingDiff, pendingRole);
     };
   }
 
@@ -229,22 +387,29 @@ const GamesArena = (() => {
     if (overlay) overlay.classList.add('hidden');
   }
 
-  function startSelectedGame(gameKey, mode = 'ai', diff = 'hard', role = 1) {
+  function startSelectedGame(gameKey, mode = 'ai', diff = 'hard', role = 1, oppName = null, oppAvatar = null) {
     currentGame = gameKey;
     gameMode = mode;
     aiDifficulty = diff;
     myRole = role;
     currentTurn = 1;
     isGameOver = false;
+    remoteOpponentName = oppName;
+    remoteOpponentAvatar = oppAvatar;
 
     const lobbyView = document.getElementById('gamesLobbyView');
     const playView = document.getElementById('gamesPlayView');
     if (lobbyView) lobbyView.classList.add('hidden');
     if (playView) playView.classList.remove('hidden');
 
-    toggleExpandedView(true); // 对弈开始：自动平滑展开为宽屏舒适大棋盘模式
+    setViewMode(viewMode || 'expanded');
+    applyGameScale();
 
     const titleMap = {
+      soup: '🍲 灵犀海龟汤 · 迷雾探案',
+      temple: '💧🔥 水火共生 · 灵泉圣殿',
+      contra: '🔫💥 合金双雄 · 魂斗先锋',
+      thunder: '✈️⚡ 星际雷霆 · 极光战机',
       gomoku: '⚪⚫ 五子棋 · 智弈天元',
       animals: '🐘🦁 斗兽棋 · 丛林争霸',
       xiangqi: '🪓👑 中国象棋 · 楚河汉界',
@@ -256,15 +421,33 @@ const GamesArena = (() => {
 
     const modePill = document.getElementById('gameModePill');
     if (modePill) {
-      if (mode === 'ai') {
-        const diffText = diff === 'easy' ? '初学' : (diff === 'medium' ? '进阶' : '棋圣');
-        modePill.textContent = `🤖 人机对弈 (${diffText})`;
+      if (gameKey === 'soup') {
+        modePill.textContent = '🐢 帕帕主持人 · DM在线';
+      } else if (mode === 'ai') {
+        const diffText = diff === 'easy' ? '初学' : (diff === 'medium' ? '进阶' : '巅峰');
+        modePill.textContent = `🕹️ 单人试炼 (${diffText})`;
       } else {
-        modePill.textContent = '👥 远程伙伴联机';
+        const roleLabel = role === 1 ? '1P 帕帕' : '2P 小南瓜';
+        modePill.textContent = `👥 伙伴联机 (${roleLabel})`;
       }
     }
 
-    if (gameKey === 'gomoku') initGomoku();
+    if (typeof TempleGame !== 'undefined') TempleGame.stop();
+    if (typeof ContraGame !== 'undefined') ContraGame.stop();
+    if (typeof ThunderGame !== 'undefined') ThunderGame.stop();
+    if (typeof TurtleSoupGame !== 'undefined') TurtleSoupGame.stop();
+
+    const arena = document.getElementById('gameArenaContent');
+
+    if (gameKey === 'soup') {
+      if (typeof TurtleSoupGame !== 'undefined') TurtleSoupGame.init(arena, mode, role);
+    } else if (gameKey === 'temple') {
+      if (typeof TempleGame !== 'undefined') TempleGame.init(arena, mode, role);
+    } else if (gameKey === 'contra') {
+      if (typeof ContraGame !== 'undefined') ContraGame.init(arena, mode, role);
+    } else if (gameKey === 'thunder') {
+      if (typeof ThunderGame !== 'undefined') ThunderGame.init(arena, mode, role);
+    } else if (gameKey === 'gomoku') initGomoku();
     else if (gameKey === 'animals') initAnimals();
     else if (gameKey === 'xiangqi') initXiangqi();
     else if (gameKey === 'ludo') initLudo();
@@ -283,7 +466,19 @@ const GamesArena = (() => {
       if (isGameOver) {
         banner.textContent = '🏁 对局已结束';
       } else {
-        banner.textContent = isMyTurn ? '✦ 你的回合 ✦' : (gameMode === 'ai' ? '🤖 棋圣深度算路中...' : '⏳ 伙伴的回合');
+        if (isMyTurn) {
+          banner.textContent = '✦ 你的回合 ✦';
+        } else {
+          if (gameMode === 'ai') {
+            banner.textContent = '🤖 AI 深度算路中...';
+          } else {
+            const oppRoleName = (currentGame === 'gomoku' ? (myRole === 1 ? '执白' : '执黑') :
+                                 (currentGame === 'animals' ? (myRole === 1 ? '红方' : '蓝方') :
+                                  (currentGame === 'xiangqi' ? (myRole === 1 ? '黑方' : '红方') :
+                                   (myRole === 1 ? '黄队' : '红队'))));
+            banner.textContent = `⏳ 伙伴思考中 (${oppRoleName})`;
+          }
+        }
       }
     }
 
@@ -396,21 +591,29 @@ const GamesArena = (() => {
     const arena = document.getElementById('gameArenaContent');
     if (!arena) return;
 
+    const isP1 = myRole === 1;
+    const myRoleTitle = isP1 ? '执黑先手' : '执白后手';
+    const oppRoleTitle = isP1 ? '执白后手' : '执黑先手';
+    const myPieceClass = isP1 ? 'black' : 'white';
+    const oppPieceClass = isP1 ? 'white' : 'black';
+    const oppName = gameMode === 'ai' ? '棋圣玄武 (AI)' : (remoteOpponentName || '共养伙伴');
+    const oppAvatar = gameMode === 'ai' ? '🤖' : (remoteOpponentAvatar || '✨');
+
     arena.innerHTML = `
-      <div class="game-player-card" id="gamePlayerCard">
+      <div class="game-player-card ${currentTurn === myRole ? 'active-turn' : ''}" id="gamePlayerCard">
         <div class="game-player-avatar">🐢</div>
         <div class="game-player-name">${state.user?.name || '帕帕饲养员'}</div>
-        <div class="game-player-role">执黑先手</div>
-        <div class="game-player-piece-preview gomoku-piece black"></div>
+        <div class="game-player-role">${myRoleTitle}</div>
+        <div class="game-player-piece-preview gomoku-piece ${myPieceClass}"></div>
       </div>
 
       <div class="gomoku-board-container" id="gomokuBoard"></div>
 
-      <div class="game-player-card" id="gameOpponentCard">
-        <div class="game-player-avatar">${gameMode === 'ai' ? '🤖' : '✨'}</div>
-        <div class="game-player-name">${gameMode === 'ai' ? '棋圣玄武 (AI)' : '共养伙伴'}</div>
-        <div class="game-player-role">执白后手</div>
-        <div class="game-player-piece-preview gomoku-piece white"></div>
+      <div class="game-player-card ${currentTurn !== myRole ? 'active-turn' : ''}" id="gameOpponentCard">
+        <div class="game-player-avatar">${oppAvatar}</div>
+        <div class="game-player-name">${oppName}</div>
+        <div class="game-player-role">${oppRoleTitle}</div>
+        <div class="game-player-piece-preview gomoku-piece ${oppPieceClass}"></div>
       </div>
     `;
 
@@ -644,19 +847,27 @@ const GamesArena = (() => {
     const arena = document.getElementById('gameArenaContent');
     if (!arena) return;
 
+    const isP1 = myRole === 1;
+    const myRoleTitle = isP1 ? '蓝方 · 守卫南林' : '红方 · 进击北原';
+    const oppRoleTitle = isP1 ? '红方 · 进击北原' : '蓝方 · 守卫南林';
+    const oppName = gameMode === 'ai' ? '森林霸主 (AI)' : (remoteOpponentName || '共养伙伴');
+    const oppAvatar = gameMode === 'ai' ? '🤖' : (remoteOpponentAvatar || '✨');
+
     arena.innerHTML = `
-      <div class="game-player-card" id="gamePlayerCard">
+      <div class="game-player-card ${currentTurn === myRole ? 'active-turn' : ''}" id="gamePlayerCard">
         <div class="game-player-avatar">🐢</div>
         <div class="game-player-name">${state.user?.name || '帕帕饲养员'}</div>
-        <div class="game-player-role">蓝方 · 守卫南林</div>
+        <div class="game-player-role">${myRoleTitle}</div>
+        <div class="game-player-piece-preview animal-piece ${isP1 ? 'p1' : 'p2'}"><span>${isP1 ? '🐘' : '🦁'}</span></div>
       </div>
 
       <div class="animals-board-container" id="animalsBoard"></div>
 
-      <div class="game-player-card" id="gameOpponentCard">
-        <div class="game-player-avatar">${gameMode === 'ai' ? '🤖' : '✨'}</div>
-        <div class="game-player-name">${gameMode === 'ai' ? '森林霸主 (AI)' : '共养伙伴'}</div>
-        <div class="game-player-role">红方 · 进击北原</div>
+      <div class="game-player-card ${currentTurn !== myRole ? 'active-turn' : ''}" id="gameOpponentCard">
+        <div class="game-player-avatar">${oppAvatar}</div>
+        <div class="game-player-name">${oppName}</div>
+        <div class="game-player-role">${oppRoleTitle}</div>
+        <div class="game-player-piece-preview animal-piece ${isP1 ? 'p2' : 'p1'}"><span>${isP1 ? '🦁' : '🐘'}</span></div>
       </div>
     `;
 
@@ -720,6 +931,13 @@ const GamesArena = (() => {
 
         if (isDenCell(r, c, myRole)) {
           handleGameOver(myRole, '直捣敌巢！成功攻破敌方兽穴！');
+          return;
+        }
+
+        const oppRole = myRole === 1 ? 2 : 1;
+        const oppHasAnimals = animalsState.board.some(row => row.some(p => p && p.player === oppRole));
+        if (!oppHasAnimals) {
+          handleGameOver(myRole, '全歼敌方兽群！赢得胜利！');
           return;
         }
 
@@ -932,23 +1150,29 @@ const GamesArena = (() => {
     const arena = document.getElementById('gameArenaContent');
     if (!arena) return;
 
+    const isP1 = myRole === 1;
+    const myRoleTitle = isP1 ? '红方 · 执帥先发' : '黑方 · 运筹帷幄';
+    const oppRoleTitle = isP1 ? '黑方 · 运筹帷幄' : '红方 · 执帥先发';
+    const oppName = gameMode === 'ai' ? '九段国手 (AI)' : (remoteOpponentName || '共养伙伴');
+    const oppAvatar = gameMode === 'ai' ? '🤖' : (remoteOpponentAvatar || '✨');
+
     arena.innerHTML = `
-      <div class="game-player-card" id="gamePlayerCard">
+      <div class="game-player-card ${currentTurn === myRole ? 'active-turn' : ''}" id="gamePlayerCard">
         <div class="game-player-avatar">🐢</div>
         <div class="game-player-name">${state.user?.name || '帕帕饲养员'}</div>
-        <div class="game-player-role">红方 · 执帅先发</div>
-        <div class="game-player-piece-preview xq-piece red">帥</div>
+        <div class="game-player-role">${myRoleTitle}</div>
+        <div class="game-player-piece-preview xq-piece ${isP1 ? 'red' : 'black'}">${isP1 ? '帥' : '將'}</div>
       </div>
 
       <div class="xiangqi-board-container" id="xiangqiBoard">
         <div class="xq-river-label"><span>楚 河</span><span>漢 界</span></div>
       </div>
 
-      <div class="game-player-card" id="gameOpponentCard">
-        <div class="game-player-avatar">${gameMode === 'ai' ? '🤖' : '✨'}</div>
-        <div class="game-player-name">${gameMode === 'ai' ? '九段国手 (AI)' : '共养伙伴'}</div>
-        <div class="game-player-role">黑方 · 运筹帷幄</div>
-        <div class="game-player-piece-preview xq-piece black">將</div>
+      <div class="game-player-card ${currentTurn !== myRole ? 'active-turn' : ''}" id="gameOpponentCard">
+        <div class="game-player-avatar">${oppAvatar}</div>
+        <div class="game-player-name">${oppName}</div>
+        <div class="game-player-role">${oppRoleTitle}</div>
+        <div class="game-player-piece-preview xq-piece ${isP1 ? 'black' : 'red'}">${isP1 ? '將' : '帥'}</div>
       </div>
     `;
 
@@ -1012,7 +1236,7 @@ const GamesArena = (() => {
         }
 
         if (targetKey === (myRole === 1 ? 'b_k' : 'r_k')) {
-          handleGameOver(myRole, '绝杀！擒杀敌方主将，红方大获全胜！');
+          handleGameOver(myRole, `绝杀！擒杀敌方主将，${myRole === 1 ? '红方' : '黑方'}赢得大捷！`);
           return;
         }
 
@@ -1267,17 +1491,23 @@ const GamesArena = (() => {
     const diceVal = ludoState.currentDice || 6;
     const diceIcons = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
     const isMyTurn = currentTurn === myRole;
+    const isP1 = myRole === 1;
+
+    const myRoleTitle = isP1 ? '红队 · 红色航站' : '黄队 · 黄色航站';
+    const oppRoleTitle = isP1 ? '黄队 · 黄色航站' : '红队 · 红色航站';
+    const oppName = gameMode === 'ai' ? '王牌飞行员 (AI)' : (remoteOpponentName || '共养伙伴');
+    const oppAvatar = gameMode === 'ai' ? '🤖' : (remoteOpponentAvatar || '✨');
 
     arena.innerHTML = `
-      <div class="game-player-card" id="gamePlayerCard">
+      <div class="game-player-card ${isMyTurn ? 'active-turn' : ''}" id="gamePlayerCard">
         <div class="game-player-avatar">🐢</div>
         <div class="game-player-name">${state.user?.name || '帕帕饲养员'}</div>
-        <div class="game-player-role">红队 · 红色航站</div>
+        <div class="game-player-role">${myRoleTitle}</div>
         <div class="ludo-dice-controller">
           <div class="ludo-dice-box ${ludoState.isRolling ? 'rolling' : ''}" id="ludoDiceBtn">
             ${diceIcons[diceVal - 1]}
           </div>
-          <small id="dicePromptText">${isMyTurn ? (!ludoState.hasRolled ? '👉 点击骰子投掷' : '点击战机起飞/前进') : '等待对方掷骰'}</small>
+          <small id="dicePromptText">${isMyTurn ? (!ludoState.hasRolled ? '👉 点击骰子投掷' : '点击高亮战机行动') : '等待对方掷骰'}</small>
         </div>
       </div>
 
@@ -1358,16 +1588,18 @@ const GamesArena = (() => {
         </svg>
       </div>
 
-      <div class="game-player-card" id="gameOpponentCard">
-        <div class="game-player-avatar">${gameMode === 'ai' ? '🤖' : '✨'}</div>
-        <div class="game-player-name">${gameMode === 'ai' ? '王牌飞行员 (AI)' : '共养伙伴'}</div>
-        <div class="game-player-role">黄队 · 黄色航站</div>
+      <div class="game-player-card ${!isMyTurn ? 'active-turn' : ''}" id="gameOpponentCard">
+        <div class="game-player-avatar">${oppAvatar}</div>
+        <div class="game-player-name">${oppName}</div>
+        <div class="game-player-role">${oppRoleTitle}</div>
       </div>
     `;
 
-    // 绑定飞机点击事件
-    ludoState.planes.p1.forEach(p => {
-      const el = document.getElementById(`plane_svg_p1_${p.id}`);
+    // 绑定当前玩家飞机点击事件 (支持 P1 红队 与 P2 黄队)
+    const myPlanes = isP1 ? ludoState.planes.p1 : ludoState.planes.p2;
+    const myPlanePrefix = isP1 ? 'p1' : 'p2';
+    myPlanes.forEach(p => {
+      const el = document.getElementById(`plane_svg_${myPlanePrefix}_${p.id}`);
       if (el && isMyTurn && ludoState.hasRolled) {
         el.onclick = () => onLudoPlaneClick(p);
       }
@@ -1382,11 +1614,12 @@ const GamesArena = (() => {
   function renderSvgPlanes() {
     let html = '';
     const isMyTurn = currentTurn === myRole;
+    const isP1 = myRole === 1;
 
     // 红队战机
     ludoState.planes.p1.forEach(p => {
       const coord = getPlaneSvgCoord(p, 'p1');
-      const canMove = isMyTurn && ludoState.hasRolled && (p.pos !== -1 || ludoState.currentDice >= 5) && p.pos !== 200;
+      const canMove = isMyTurn && isP1 && ludoState.hasRolled && (p.pos !== -1 || ludoState.currentDice >= 5) && p.pos !== 200;
       html += `
         <g class="ludo-plane-svg ${canMove ? 'active-movable' : ''}" id="plane_svg_p1_${p.id}" transform="translate(${coord[0]}, ${coord[1]})">
           <circle cx="0" cy="0" r="14" fill="#ef4444" stroke="#ffffff" stroke-width="2"/>
@@ -1398,8 +1631,9 @@ const GamesArena = (() => {
     // 黄队战机
     ludoState.planes.p2.forEach(p => {
       const coord = getPlaneSvgCoord(p, 'p2');
+      const canMove = isMyTurn && !isP1 && ludoState.hasRolled && (p.pos !== -1 || ludoState.currentDice >= 5) && p.pos !== 200;
       html += `
-        <g class="ludo-plane-svg" id="plane_svg_p2_${p.id}" transform="translate(${coord[0]}, ${coord[1]})">
+        <g class="ludo-plane-svg ${canMove ? 'active-movable' : ''}" id="plane_svg_p2_${p.id}" transform="translate(${coord[0]}, ${coord[1]})">
           <circle cx="0" cy="0" r="14" fill="#eab308" stroke="#ffffff" stroke-width="2"/>
           <text x="0" y="4" font-size="13" text-anchor="middle">🛩️</text>
         </g>
@@ -1434,6 +1668,10 @@ const GamesArena = (() => {
       ludoState.currentDice = 1 + Math.floor(Math.random() * 6);
       ludoState.hasRolled = true;
       renderLudoBoard();
+
+      if (gameMode === 'pvp') {
+        sendRemoteAction({ game: 'ludo', action: 'dice', dice: ludoState.currentDice });
+      }
 
       const activeKey = currentTurn === 1 ? 'p1' : 'p2';
       const canMove = ludoState.planes[activeKey].some(p => {
@@ -1496,10 +1734,21 @@ const GamesArena = (() => {
       }
     }
 
+    if (gameMode === 'pvp') {
+      sendRemoteAction({
+        game: 'ludo',
+        action: 'move',
+        planeId: plane.id,
+        newPos: plane.pos,
+        dice: dice,
+        passTurn: (dice !== 6)
+      });
+    }
+
     // 胜利判定：4 架飞机均到达终点大本营
     const myPlanes = ludoState.planes[isP1 ? 'p1' : 'p2'];
     if (myPlanes.every(p => p.pos === 200)) {
-      handleGameOver(myRole, '全员凯旋！4 架战机率先全部安全降落终点大本营！');
+      handleGameOver(myRole, `全员凯旋！${isP1 ? '红队' : '黄队'} 4 架战机率先全部安全降落终点！`);
       return;
     }
 
@@ -1517,6 +1766,10 @@ const GamesArena = (() => {
     currentTurn = currentTurn === 1 ? 2 : 1;
     renderLudoBoard();
     updateTurnDisplay();
+
+    if (gameMode === 'pvp' && currentTurn !== myRole) {
+      sendRemoteAction({ game: 'ludo', action: 'pass' });
+    }
 
     if (currentTurn !== myRole && gameMode === 'ai' && !isGameOver) {
       setTimeout(makeLudoAiTurn, 550);
@@ -1569,13 +1822,13 @@ const GamesArena = (() => {
         const bestPlane = candidatePlanes[0];
 
         if (bestPlane.pos === -1) {
-          bestPlane.pos = 26;
+          bestPlane.pos = (myRole === 1 ? 26 : 0);
         } else if (bestPlane.pos >= 100) {
           bestPlane.pos += dice;
           if (bestPlane.pos >= 105) bestPlane.pos = 200;
         } else {
           bestPlane.pos = (bestPlane.pos + dice);
-          if (bestPlane.pos < 52 && (bestPlane.pos % 4 === 1)) {
+          if (bestPlane.pos < 52 && (bestPlane.pos % 4 === (myRole === 1 ? 1 : 0))) {
             bestPlane.pos = (bestPlane.pos + 4) % 52;
           }
           humanPlanes.forEach(hp => {
@@ -1584,15 +1837,21 @@ const GamesArena = (() => {
               playSound('capture');
             }
           });
-          if (bestPlane.pos >= 22 && bestPlane.pos < 100 && bestPlane.pos > 26) {
-            bestPlane.pos = 100;
+          if (myRole === 1) {
+            if (bestPlane.pos >= 22 && bestPlane.pos < 100 && bestPlane.pos > 26) {
+              bestPlane.pos = 100 + (bestPlane.pos - 22);
+            }
+          } else {
+            if (bestPlane.pos >= 48 && bestPlane.pos < 100) {
+              bestPlane.pos = 100 + (bestPlane.pos - 48);
+            }
           }
         }
         playSound('stone');
       }
 
       if (planes.every(p => p.pos === 200)) {
-        handleGameOver(myRole === 1 ? 2 : 1, '黄队战机先一步全部安全返航！');
+        handleGameOver(myRole === 1 ? 2 : 1, 'AI 战机先一步全部安全返航！');
         return;
       }
 
@@ -1620,35 +1879,185 @@ const GamesArena = (() => {
     if (!payload || !currentGame) return;
     if (payload.game !== currentGame) return;
 
+    if (meta && meta.senderName) {
+      remoteOpponentName = meta.senderName;
+      remoteOpponentAvatar = meta.senderAvatar || '✨';
+    }
+
     if (payload.action === 'move') {
       if (payload.game === 'gomoku') {
         makeGomokuMove(payload.r, payload.c, payload.val);
         playSound('stone');
         if (checkGomokuWin(payload.r, payload.c, payload.val)) {
-          handleGameOver(payload.val, '共养伙伴完成了五子连线！');
+          handleGameOver(payload.val, payload.val === myRole ? '五子连珠！气势如虹，赢得胜利！' : '共养伙伴完成了五子连线！');
           return;
         }
         currentTurn = myRole;
         updateTurnDisplay();
       } else if (payload.game === 'animals') {
+        const target = animalsState.board[payload.tr][payload.tc];
         makeAnimalMove(payload.sr, payload.sc, payload.tr, payload.tc);
-        playSound('wood');
+        playSound(target ? 'capture' : 'wood');
+        const enemyRole = myRole === 1 ? 2 : 1;
+        if (isDenCell(payload.tr, payload.tc, enemyRole)) {
+          handleGameOver(enemyRole, '敌方动物占领了你的兽穴！');
+          return;
+        }
+        if (!animalsState.board.some(row => row.some(p => p && p.player === myRole))) {
+          handleGameOver(enemyRole, '我方动物全数阵亡，胜败乃兵家常事。');
+          return;
+        }
         currentTurn = myRole;
         renderAnimalsBoard();
         updateTurnDisplay();
       } else if (payload.game === 'xiangqi') {
         const b = xiangqiState.board;
+        const targetKey = b[payload.tr][payload.tc];
         b[payload.tr][payload.tc] = b[payload.sr][payload.sc];
         b[payload.sr][payload.sc] = null;
-        playSound('wood');
+        playSound(targetKey ? 'capture' : 'wood');
+        const enemyRole = myRole === 1 ? 2 : 1;
+        if (targetKey === (myRole === 1 ? 'r_k' : 'b_k')) {
+          handleGameOver(enemyRole, '主将被擒！胜败乃兵家常事。');
+          return;
+        }
         currentTurn = myRole;
         renderXiangqiBoard();
         updateTurnDisplay();
+      } else if (payload.game === 'ludo') {
+        const oppKey = myRole === 1 ? 'p2' : 'p1';
+        const plane = ludoState.planes[oppKey].find(p => p.id === payload.planeId);
+        if (plane) {
+          plane.pos = payload.newPos;
+        }
+        playSound('stone');
+        const myKey = myRole === 1 ? 'p1' : 'p2';
+        ludoState.planes[myKey].forEach(mp => {
+          if (mp.pos === payload.newPos && payload.newPos < 100 && payload.newPos !== -1) {
+            mp.pos = -1;
+            playSound('capture');
+          }
+        });
+        if (ludoState.planes[oppKey].every(p => p.pos === 200)) {
+          handleGameOver(myRole === 1 ? 2 : 1, '伙伴的战机先一步全部安全返航！');
+          return;
+        }
+        if (payload.passTurn) {
+          currentTurn = myRole;
+          ludoState.hasRolled = false;
+        } else {
+          ludoState.hasRolled = false;
+        }
+        renderLudoBoard();
+        updateTurnDisplay();
       }
+    } else if (payload.action === 'dice' && payload.game === 'ludo') {
+      ludoState.currentDice = payload.dice;
+      ludoState.hasRolled = true;
+      playSound('dice');
+      renderLudoBoard();
+      updateTurnDisplay();
+    } else if (payload.action === 'pass' && payload.game === 'ludo') {
+      currentTurn = myRole;
+      ludoState.hasRolled = false;
+      renderLudoBoard();
+      updateTurnDisplay();
+    }
+  }
+
+  function handleRemoteInvite(data) {
+    if (!data || !data.payload) return;
+    const { game, inviterRole, inviterName } = data.payload;
+    const gameNames = {
+      temple: '💧🔥 水火共生 · 灵泉圣殿',
+      contra: '🔫💥 合金双雄 · 魂斗先锋',
+      thunder: '✈️⚡ 星际雷霆 · 极光战机',
+      gomoku: '⚪⚫ 五子棋',
+      animals: '🐘🦁 斗兽棋',
+      xiangqi: '🪓👑 中国象棋',
+      ludo: '✈️🎲 飞行棋'
+    };
+    const title = gameNames[game] || '对战对局';
+    const targetRole = inviterRole === 1 ? 2 : 1;
+    const roleDescs = {
+      temple: targetRole === 1 ? '1P 帕帕(水灵)' : '2P 小南瓜(炽火)',
+      contra: targetRole === 1 ? '1P 帕帕(装甲)' : '2P 小南瓜(爆破)',
+      thunder: targetRole === 1 ? '1P 极光神龟' : '2P 炽焰战梭',
+      gomoku: targetRole === 1 ? '执黑(先手)' : '执白(后手)',
+      animals: targetRole === 1 ? '蓝方(先手)' : '红方(后手)',
+      xiangqi: targetRole === 1 ? '红方(先手)' : '黑方(后手)',
+      ludo: targetRole === 1 ? '红队(先手)' : '黄队(后手)'
+    };
+
+    if (typeof toast === 'function') {
+      toast(
+        `🎮 收到对弈邀请`,
+        `【${inviterName || '共养伙伴'}】邀请你加入【${title}】(${roleDescs[game] || ''})！`,
+        6000
+      );
+    }
+
+    const playPrompt = confirm(`【${inviterName || '伙伴'}】向你发起了【${title}】联机挑战！\n是否立即加入对弈？`);
+    if (playPrompt) {
+      if (typeof switchWorldMode === 'function') {
+        switchWorldMode('games');
+      }
+      startSelectedGame(game, 'pvp', 'hard', targetRole, inviterName, data.senderAvatar);
     }
   }
 
   function initUI() {
+    // 分类 Tab 切换
+    const catArcadeBtn = document.getElementById('gameCatArcadeBtn');
+    const catSoupBtn = document.getElementById('gameCatSoupBtn');
+    const catBoardBtn = document.getElementById('gameCatBoardBtn');
+    const arcadeGrid = document.getElementById('arcadeGamesGrid');
+    const soupGrid = document.getElementById('soupGamesGrid');
+    const boardGrid = document.getElementById('boardGamesGrid');
+
+    function switchGameCategory(activeTab) {
+      [catArcadeBtn, catSoupBtn, catBoardBtn].forEach(b => b?.classList.remove('active'));
+      [arcadeGrid, soupGrid, boardGrid].forEach(g => g?.classList.add('hidden'));
+
+      if (activeTab === 'arcade') {
+        catArcadeBtn?.classList.add('active');
+        arcadeGrid?.classList.remove('hidden');
+      } else if (activeTab === 'soup') {
+        catSoupBtn?.classList.add('active');
+        soupGrid?.classList.remove('hidden');
+      } else if (activeTab === 'board') {
+        catBoardBtn?.classList.add('active');
+        boardGrid?.classList.remove('hidden');
+      }
+    }
+
+    if (catArcadeBtn) catArcadeBtn.onclick = () => switchGameCategory('arcade');
+    if (catSoupBtn) catSoupBtn.onclick = () => switchGameCategory('soup');
+    if (catBoardBtn) catBoardBtn.onclick = () => switchGameCategory('board');
+
+    // 街机动作游戏卡片点击
+    const cardTemple = document.getElementById('gameCardTemple');
+    const cardContra = document.getElementById('gameCardContra');
+    const cardThunder = document.getElementById('gameCardThunder');
+
+    if (cardTemple) cardTemple.onclick = () => openGameSetupModal('temple');
+    if (cardContra) cardContra.onclick = () => openGameSetupModal('contra');
+    if (cardThunder) cardThunder.onclick = () => openGameSetupModal('thunder');
+
+    // 海龟汤故事卡片点击 (1 ~ 6 案)
+    for (let idx = 0; idx < 6; idx++) {
+      const card = document.getElementById(`gameCardSoup${idx + 1}`);
+      if (card) {
+        card.onclick = () => {
+          startSelectedGame('soup', 'ai', 'hard', 1);
+          if (typeof TurtleSoupGame !== 'undefined') {
+            TurtleSoupGame.loadStory(idx);
+          }
+        };
+      }
+    }
+
+    // 棋类卡片点击
     const cardGomoku = document.getElementById('gameCardGomoku');
     const cardAnimals = document.getElementById('gameCardAnimals');
     const cardXiangqi = document.getElementById('gameCardXiangqi');
@@ -1663,7 +2072,16 @@ const GamesArena = (() => {
     if (backLobbyBtn) backLobbyBtn.onclick = showLobby;
 
     const expandBtn = document.getElementById('gameExpandBtn');
-    if (expandBtn) expandBtn.onclick = () => toggleExpandedView();
+    if (expandBtn) expandBtn.onclick = cycleViewMode;
+
+    const zoomInBtn = document.getElementById('gameZoomInBtn');
+    if (zoomInBtn) zoomInBtn.onclick = () => adjustGameScale(0.1);
+
+    const zoomOutBtn = document.getElementById('gameZoomOutBtn');
+    if (zoomOutBtn) zoomOutBtn.onclick = () => adjustGameScale(-0.1);
+
+    const zoomResetBtn = document.getElementById('gameZoomResetBtn');
+    if (zoomResetBtn) zoomResetBtn.onclick = resetGameScale;
 
     const surrenderBtn = document.getElementById('gameSurrenderBtn');
     if (surrenderBtn) {
@@ -1678,6 +2096,23 @@ const GamesArena = (() => {
         openGameSetupModal(currentGame);
       };
     }
+
+    // 缩放快捷键绑定 (Ctrl + / Ctrl - / Ctrl 0)
+    document.addEventListener('keydown', (e) => {
+      const playView = document.getElementById('gamesPlayView');
+      if (currentGame && playView && !playView.classList.contains('hidden')) {
+        if ((e.ctrlKey || e.metaKey) && (e.key === '=' || e.key === '+')) {
+          e.preventDefault();
+          adjustGameScale(0.1);
+        } else if ((e.ctrlKey || e.metaKey) && (e.key === '-' || e.key === '_')) {
+          e.preventDefault();
+          adjustGameScale(-0.1);
+        } else if ((e.ctrlKey || e.metaKey) && (e.key === '0')) {
+          e.preventDefault();
+          resetGameScale();
+        }
+      }
+    });
   }
 
   return {
@@ -1686,6 +2121,9 @@ const GamesArena = (() => {
     openGameSetupModal,
     startSelectedGame,
     handleRemoteAction,
+    handleRemoteInvite,
+    setGameScale,
+    setViewMode,
     getCurrentGame: () => currentGame
   };
 })();

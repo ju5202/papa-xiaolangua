@@ -432,15 +432,74 @@
           <div class="games-floating-lanterns"></div>
         </div>
 
-        <!-- 视图 1：棋阁大厅 (Lobby View) -->
+        <!-- 视图 1：棋阁与街机大厅 (Lobby View) -->
         <div class="games-view-lobby" id="gamesLobbyView">
           <div class="games-lobby-header">
-            <div class="games-lobby-tag">🎮 GAMES ARENA · 游艺棋阁</div>
-            <h2>经典弈棋 · 智趣对决</h2>
-            <p>选择一款喜爱的棋类游戏，既可挑战聪明机智的 AI，也能与远方共养伙伴在线博弈。</p>
+            <div class="games-lobby-tag">🎮 GAMES & ARCADE · 游艺街机阁</div>
+            <h2>经典街机 · 智弈对决</h2>
+            <p>畅玩《水火共生》、《合金双雄》、《星际雷霆》等经典街机闯关，亦可体验五子棋、象棋等智弈对局！</p>
           </div>
 
-          <div class="games-cards-grid">
+          <!-- 分类导航栏 -->
+          <div class="games-category-nav" role="tablist">
+            <button class="games-cat-btn active" id="gameCatArcadeBtn" data-cat="arcade">
+              <span>🕹️ 街机动作闯关</span>
+              <span class="cat-badge">HOT 3款</span>
+            </button>
+            <button class="games-cat-btn" id="gameCatSoupBtn" data-cat="soup">
+              <span>🍲 灵犀海龟汤</span>
+              <span class="cat-badge">推理 6案</span>
+            </button>
+            <button class="games-cat-btn" id="gameCatBoardBtn" data-cat="board">
+              <span>⚪ 经典棋弈对决</span>
+              <span class="cat-badge">4款</span>
+            </button>
+          </div>
+
+          <!-- 街机闯关卡片区 -->
+          <div class="games-cards-grid" id="arcadeGamesGrid">
+            <!-- 1. 水火共生 · 灵泉圣殿 (森林冰火人) -->
+            <div class="game-select-card" id="gameCardTemple" data-game="temple">
+              <div class="game-card-icon-box" style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.3), rgba(249, 115, 22, 0.3)); border-color: #f59e0b;">💧🔥</div>
+              <div class="game-card-info">
+                <div class="game-card-title-row">
+                  <span class="game-card-title">水火共生 · 灵泉圣殿</span>
+                  <span class="game-card-badge" style="background: rgba(245, 158, 11, 0.3); color: #fde047;">致敬冰火人</span>
+                </div>
+                <div class="game-card-desc">双人解谜跳台闯关！帕帕水灵龟与小南瓜烈火踏板协作，躲避毒沼，开启神殿之门。</div>
+                <div class="game-card-stats" id="templeStatText">最高积分: <b>0</b></div>
+              </div>
+            </div>
+
+            <!-- 2. 合金双雄 · 魂斗先锋 (魂斗罗) -->
+            <div class="game-select-card" id="gameCardContra" data-game="contra">
+              <div class="game-card-icon-box" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(168, 85, 247, 0.3)); border-color: #ef4444;">🔫💥</div>
+              <div class="game-card-info">
+                <div class="game-card-title-row">
+                  <span class="game-card-title">合金双雄 · 魂斗先锋</span>
+                  <span class="game-card-badge" style="background: rgba(239, 68, 68, 0.3); color: #fca5a5;">致敬魂斗罗</span>
+                </div>
+                <div class="game-card-desc">横版卷轴热血射击！8向开火、S散弹/L激光/F火焰武器捡取，迎战巨型机甲Boss！</div>
+                <div class="game-card-stats" id="contraStatText">最高战绩: <b>0</b></div>
+              </div>
+            </div>
+
+            <!-- 3. 星际雷霆 · 极光战机 (雷霆战机) -->
+            <div class="game-select-card" id="gameCardThunder" data-game="thunder">
+              <div class="game-card-icon-box" style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.3), rgba(234, 179, 8, 0.3)); border-color: #38bdf8;">✈️⚡</div>
+              <div class="game-card-info">
+                <div class="game-card-title-row">
+                  <span class="game-card-title">星际雷霆 · 极光战机</span>
+                  <span class="game-card-badge" style="background: rgba(56, 189, 248, 0.3); color: #93c5fd;">致敬雷霆战机</span>
+                </div>
+                <div class="game-card-desc">纵版弹幕射击！主炮进阶Lv.MAX暴走模式、双翼浮游僚机、全屏歼星天基大招！</div>
+                <div class="game-card-stats" id="thunderStatText">最高勋绩: <b>0</b></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 经典棋弈卡片区 -->
+          <div class="games-cards-grid hidden" id="boardGamesGrid">
             <!-- 1. 五子棋 -->
             <div class="game-select-card" id="gameCardGomoku" data-game="gomoku">
               <div class="game-card-icon-box">⚪</div>
@@ -493,13 +552,94 @@
               </div>
             </div>
           </div>
+
+          <!-- 灵犀海龟汤剧本区 -->
+          <div class="games-cards-grid hidden" id="soupGamesGrid">
+            <!-- 剧本 1: 海龟汤的原点 -->
+            <div class="game-select-card" id="gameCardSoup1" data-game="soup" data-soup-idx="0">
+              <div class="game-card-icon-box" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.3), rgba(217, 119, 6, 0.3)); border-color: #f59e0b;">🐢🍲</div>
+              <div class="game-card-info">
+                <div class="game-card-title-row">
+                  <span class="game-card-title">海龟汤的原点</span>
+                  <span class="game-card-badge" style="background: rgba(245, 158, 11, 0.3); color: #fde047;">经典悬疑</span>
+                </div>
+                <div class="game-card-desc">男子在海边餐厅喝了一口真正的海龟汤后失声痛哭自杀，背后隐藏着怎样的绝望真相？</div>
+                <div class="game-card-stats" id="soupStatText">破案总数: <b>0</b></div>
+              </div>
+            </div>
+
+            <!-- 剧本 2: 深夜的盲音 -->
+            <div class="game-select-card" id="gameCardSoup2" data-game="soup" data-soup-idx="1">
+              <div class="game-card-icon-box" style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.3), rgba(14, 165, 233, 0.3)); border-color: #38bdf8;">📞🛌</div>
+              <div class="game-card-info">
+                <div class="game-card-title-row">
+                  <span class="game-card-title">深夜的盲音</span>
+                  <span class="game-card-badge" style="background: rgba(56, 189, 248, 0.3); color: #38bdf8;">脑洞推理</span>
+                </div>
+                <div class="game-card-desc">男人深夜在旅馆被隔壁规律敲击声吵醒，他拨通了一串号码一言不发便挂断并安心入睡。</div>
+                <div class="game-card-stats">难度: ⭐⭐</div>
+              </div>
+            </div>
+
+            <!-- 剧本 3: 没有脚印的雪地 -->
+            <div class="game-select-card" id="gameCardSoup3" data-game="soup" data-soup-idx="2">
+              <div class="game-card-icon-box" style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.3), rgba(147, 51, 234, 0.3)); border-color: #a855f7;">❄️🪂</div>
+              <div class="game-card-info">
+                <div class="game-card-title-row">
+                  <span class="game-card-title">没有脚印的雪地</span>
+                  <span class="game-card-badge" style="background: rgba(168, 85, 247, 0.3); color: #c084fc;">逻辑密室</span>
+                </div>
+                <div class="game-card-desc">白雪皑皑的雪地中央有一具严重撞击致死的尸体，周围没有任何脚印或车辙痕迹。</div>
+                <div class="game-card-stats">难度: ⭐⭐⭐</div>
+              </div>
+            </div>
+
+            <!-- 剧本 4: 熄灭的灯塔 -->
+            <div class="game-select-card" id="gameCardSoup4" data-game="soup" data-soup-idx="3">
+              <div class="game-card-icon-box" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(220, 38, 38, 0.3)); border-color: #ef4444;">🗼🌊</div>
+              <div class="game-card-info">
+                <div class="game-card-title-row">
+                  <span class="game-card-title">熄灭的灯塔</span>
+                  <span class="game-card-badge" style="background: rgba(239, 68, 68, 0.3); color: #fca5a5;">悬疑悲歌</span>
+                </div>
+                <div class="game-card-desc">孤独的守塔人看了一眼今天的报纸头条后脸色惨白，关掉了灯塔电源，跳下了悬崖。</div>
+                <div class="game-card-stats">难度: ⭐⭐⭐⭐</div>
+              </div>
+            </div>
+
+            <!-- 剧本 5: 湖畔的草帽 -->
+            <div class="game-select-card" id="gameCardSoup5" data-game="soup" data-soup-idx="4">
+              <div class="game-card-icon-box" style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.3), rgba(22, 163, 74, 0.3)); border-color: #22c55e;">👒🐢</div>
+              <div class="game-card-info">
+                <div class="game-card-title-row">
+                  <span class="game-card-title">湖畔的草帽</span>
+                  <span class="game-card-badge" style="background: rgba(34, 197, 94, 0.3); color: #86efac;">温馨治愈</span>
+                </div>
+                <div class="game-card-desc">烈日炎炎的湖边有一顶湿透的草帽，乌龟帕帕和小南瓜看着草帽相视一笑开心地乘凉。</div>
+                <div class="game-card-stats">难度: ⭐</div>
+              </div>
+            </div>
+
+            <!-- 剧本 6: 关灯的瞬间 -->
+            <div class="game-select-card" id="gameCardSoup6" data-game="soup" data-soup-idx="5">
+              <div class="game-card-icon-box" style="background: linear-gradient(135deg, rgba(236, 72, 153, 0.3), rgba(219, 39, 119, 0.3)); border-color: #ec4899;">💡👁️</div>
+              <div class="game-card-info">
+                <div class="game-card-title-row">
+                  <span class="game-card-title">关灯的瞬间</span>
+                  <span class="game-card-badge" style="background: rgba(236, 72, 153, 0.3); color: #f472b6;">微恐反转</span>
+                </div>
+                <div class="game-card-desc">独居男人关掉房间电灯准备入睡，但在关灯瞬间看了一眼天花板，尖叫着夺门而逃。</div>
+                <div class="game-card-stats">难度: ⭐⭐⭐</div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- 视图 2：游戏对战区 (Play View) -->
         <div class="games-view-play hidden" id="gamesPlayView">
           <div class="game-play-topbar">
             <div class="game-top-left">
-              <button class="game-back-lobby-btn" id="gameBackLobbyBtn">‹ 返回棋阁大厅</button>
+              <button class="game-back-lobby-btn" id="gameBackLobbyBtn">‹ 返回棋阁</button>
               <div class="game-title-group">
                 <h3 id="gameCurrentTitle">五子棋</h3>
                 <span class="game-mode-pill" id="gameModePill">🤖 人机对弈</span>
@@ -509,7 +649,14 @@
               <div class="game-turn-banner" id="gameTurnBanner">✦ 你的回合 ✦</div>
             </div>
             <div class="game-top-actions">
-              <button class="game-action-btn" id="gameExpandBtn" title="切换宽屏放大与标准视野">🔍 宽屏沉浸</button>
+              <!-- 棋盘尺寸无级调节 -->
+              <div class="game-scale-toolbar" id="gameScaleToolbar" title="棋盘界面大小缩放调节">
+                <button class="game-scale-btn" id="gameZoomOutBtn" title="缩小棋盘 (Ctrl -)">−</button>
+                <span class="game-scale-val" id="gameScaleVal">100%</span>
+                <button class="game-scale-btn" id="gameZoomInBtn" title="放大棋盘 (Ctrl +)">+</button>
+                <button class="game-scale-btn reset-btn" id="gameZoomResetBtn" title="重置为 100% 默认大小">↺</button>
+              </div>
+              <button class="game-action-btn" id="gameExpandBtn" title="切换视野尺寸 (标准 / 宽屏 / 全屏沉浸)">🔍 宽屏沉浸</button>
               <button class="game-action-btn" id="gameModeToggleBtn" title="切换人机对弈或双人联机">👥 切换模式</button>
               <button class="game-action-btn btn-danger" id="gameSurrenderBtn">🏳️ 认输</button>
             </div>
@@ -650,6 +797,10 @@
   <script src="js/market.js"></script>
   <script src="js/abyss.js"></script>
   <script src="js/audio.js"></script>
+  <script src="js/games_temple.js"></script>
+  <script src="js/games_contra.js"></script>
+  <script src="js/games_thunder.js"></script>
+  <script src="js/games_soup.js"></script>
   <script src="js/games.js"></script>
   <script src="js/main.js"></script>
 </body>

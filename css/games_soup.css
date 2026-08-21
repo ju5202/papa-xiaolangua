@@ -1,0 +1,415 @@
+/* ==========================================================================
+   帕帕 · 小南瓜 | 游艺街机阁 — 《灵犀海龟汤 · 迷雾探案》样式 (Turtle Soup Styles)
+   包含：悬疑故事选择卡、沉浸式DM问答对话流、线索突破树、判定徽章与汤底揭秘弹层
+   ========================================================================== */
+
+/* 海龟汤主舞台容器 */
+.soup-arena-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 520px;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(ellipse at 50% 30%, #151d30 0%, #0c101d 70%, #060810 100%);
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.8), 0 10px 30px rgba(0, 0, 0, 0.6);
+  transform: scale(var(--game-scale, 1));
+  transform-origin: center center;
+  transition: transform 0.2s ease;
+}
+
+/* 顶部故事信息与线索进度条 */
+.soup-top-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px;
+  background: rgba(15, 23, 42, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  z-index: 5;
+}
+
+.soup-title-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.soup-tag-badge {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #fde047;
+}
+
+.soup-title-box h3 {
+  font-size: 15px;
+  font-weight: 800;
+  color: #f8fafc;
+  margin: 0;
+}
+
+/* 线索进度仪表条 */
+.soup-progress-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.soup-progress-track {
+  width: 120px;
+  height: 7px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.soup-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #38bdf8, #f59e0b);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.soup-progress-text {
+  font-size: 11px;
+  font-weight: 800;
+  color: #94a3b8;
+}
+
+/* 汤面公告卡片 (置顶故事悬念) */
+.soup-surface-card {
+  margin: 12px 18px 6px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.8));
+  border: 1.5px dashed rgba(245, 158, 11, 0.4);
+  border-radius: 12px;
+  position: relative;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.soup-surface-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 900;
+  color: #f59e0b;
+  margin-bottom: 4px;
+}
+
+.soup-surface-text {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #e2e8f0;
+  font-weight: 500;
+}
+
+/* 中部对话流 (Chat Stream) */
+.soup-chat-stream {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  scroll-behavior: smooth;
+}
+
+.soup-msg-row {
+  display: flex;
+  gap: 10px;
+  max-width: 82%;
+  animation: fadeInMsg 0.25s ease-out;
+}
+
+@keyframes fadeInMsg {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.soup-msg-row.user {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.soup-msg-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.soup-msg-bubble {
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #f1f5f9;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.soup-msg-row.dm .soup-msg-bubble {
+  background: rgba(30, 41, 59, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-top-left-radius: 3px;
+}
+
+.soup-msg-row.user .soup-msg-bubble {
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-top-right-radius: 3px;
+  color: #fff;
+}
+
+/* 主持人判定徽章 */
+.soup-verdict-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 900;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-bottom: 6px;
+}
+
+.soup-verdict-tag.yes {
+  background: rgba(34, 197, 94, 0.2);
+  border: 1px solid #22c55e;
+  color: #86efac;
+}
+
+.soup-verdict-tag.no {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid #ef4444;
+  color: #fca5a5;
+}
+
+.soup-verdict-tag.irrelevant {
+  background: rgba(148, 163, 184, 0.2);
+  border: 1px solid #94a3b8;
+  color: #cbd5e1;
+}
+
+.soup-verdict-tag.clue {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.3), rgba(234, 179, 8, 0.2));
+  border: 1px solid #f59e0b;
+  color: #fde047;
+  animation: glowPulse 1.5s infinite;
+}
+
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 5px rgba(245, 158, 11, 0.4); }
+  50% { box-shadow: 0 0 15px rgba(245, 158, 11, 0.8); }
+}
+
+/* 已解锁关键线索展示卡片 */
+.soup-clue-card {
+  margin-top: 6px;
+  padding: 8px 12px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 8px;
+  font-size: 12px;
+  color: #fef08a;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 底部灵感探针快捷气泡 */
+.soup-suggest-bar {
+  padding: 4px 18px;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.soup-suggest-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.soup-suggest-chip {
+  padding: 4px 11px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #94a3b8;
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.soup-suggest-chip:hover {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: #f59e0b;
+  color: #fde047;
+  transform: translateY(-1px);
+}
+
+/* 底部输入框与操作栏 */
+.soup-input-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px 12px;
+  background: rgba(15, 23, 42, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.soup-text-input {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  padding: 8px 14px;
+  color: #fff;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.soup-text-input:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+}
+
+.soup-send-btn {
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  border: none;
+  color: #fff;
+  font-weight: 700;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.soup-send-btn:hover {
+  background: linear-gradient(135deg, #0369a1, #0284c7);
+  transform: translateY(-1px);
+}
+
+.soup-action-btn {
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+}
+
+.soup-action-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.soup-action-btn.solve {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.3), rgba(217, 119, 6, 0.3));
+  border-color: #f59e0b;
+  color: #fde047;
+}
+
+/* 汤底大揭秘结算弹层 */
+.soup-reveal-modal {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 14, 26, 0.94);
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 50;
+  animation: fadeInMsg 0.3s ease;
+}
+
+.soup-reveal-card {
+  max-width: 580px;
+  width: 100%;
+  background: #1e293b;
+  border: 2px solid #f59e0b;
+  border-radius: 16px;
+  padding: 22px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(245, 158, 11, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.soup-reveal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 10px;
+}
+
+.soup-reveal-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 900;
+  color: #fde047;
+}
+
+.soup-truth-box {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: #f1f5f9;
+}
+
+.soup-reveal-stats {
+  display: flex;
+  justify-content: space-around;
+  padding: 10px 0;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: #cbd5e1;
+}
+
+.soup-reveal-stats b {
+  color: #38bdf8;
+}
+
+.soup-reveal-btns {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
