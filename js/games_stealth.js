@@ -216,6 +216,9 @@ const StealthMode = (() => {
     const stage = document.getElementById('gamesStage');
     const topBtn = document.getElementById('topStealthBtn');
 
+    document.body.classList.toggle('stealth-on', config.enabled);
+    document.documentElement.classList.toggle('stealth-on', config.enabled);
+
     if (!appShell) return;
 
     appShell.classList.remove('stealth-active', 'stealth-autofade', 'stealth-blur');

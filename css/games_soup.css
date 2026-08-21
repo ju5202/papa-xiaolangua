@@ -413,3 +413,73 @@
   gap: 10px;
   justify-content: flex-end;
 }
+
+/* ==========================================================================
+   Day Theme Overrides for Turtle Soup (海龟汤白昼雅致阳光茶室配色)
+   ========================================================================== */
+.sanctuary.theme-day .soup-arena-wrapper {
+  background: radial-gradient(ellipse at 50% 30%, #f8fafc 0%, #f1f5f9 60%, #e2e8f0 100%) !important;
+  border-color: rgba(245, 158, 11, 0.4) !important;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08) !important;
+}
+
+.sanctuary.theme-day .soup-top-header {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-bottom: 1px solid #cbd5e1 !important;
+}
+
+.sanctuary.theme-day .soup-title-box h3 {
+  color: #0f172a !important;
+}
+
+.sanctuary.theme-day .soup-surface-card {
+  background: #ffffff !important;
+  border-color: #f59e0b !important;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06) !important;
+}
+
+.sanctuary.theme-day .soup-surface-text {
+  color: #1e293b !important;
+}
+
+.sanctuary.theme-day .soup-msg-row.dm .soup-msg-bubble {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06) !important;
+}
+
+.sanctuary.theme-day .soup-msg-avatar {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+}
+
+.sanctuary.theme-day .soup-suggest-chip {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #475569 !important;
+}
+
+.sanctuary.theme-day .soup-suggest-chip:hover {
+  background: rgba(245, 158, 11, 0.15) !important;
+  border-color: #f59e0b !important;
+  color: #d97706 !important;
+}
+
+.sanctuary.theme-day .soup-input-bar {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-top: 1px solid #cbd5e1 !important;
+}
+
+.sanctuary.theme-day .soup-text-input {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+.sanctuary.theme-day .soup-action-btn {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+}
+

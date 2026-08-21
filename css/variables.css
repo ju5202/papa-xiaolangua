@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   --ink: #fefcf4;
   --muted: #b9c1db;
   --paper: #1c223c;
@@ -35,6 +35,19 @@ body {
   user-select: none;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  transition: background 0.3s ease;
+}
+
+body.theme-day,
+body:has(.theme-day) {
+  background: #d1edff;
+  color: #0f172a;
+}
+
+body.stealth-on,
+body:has(.stealth-active),
+html:has(.stealth-active) {
+  background: transparent !important;
 }
 
 body.widget-body {

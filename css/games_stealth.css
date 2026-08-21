@@ -31,6 +31,19 @@
 }
 
 /* 全局摸鱼淡化透明度与平滑过渡 */
+body.stealth-on,
+html.stealth-on {
+  background: transparent !important;
+}
+
+body.stealth-on .sanctuary {
+  background: transparent !important;
+}
+
+body.stealth-on .ambient {
+  display: none !important;
+}
+
 .app-shell.stealth-active,
 #gamesStage.stealth-active {
   opacity: var(--stealth-opacity, 0.8);
