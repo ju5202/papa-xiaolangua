@@ -300,6 +300,19 @@
 
   function handleStorageEvent(event) {
     if (!state || !state.channel) return;
+
+    // 1. 优先处理即时信号指令包 (邀请/游戏动作/互动动作)
+    if (event.key === 'sanctuary_signal_packet' && event.newValue) {
+      try {
+        const signal = JSON.parse(event.newValue);
+        if (signal && signal.channel === state.channel && signal.senderId !== state.user?.id) {
+          handleIncomingMessage(signal);
+        }
+      } catch (e) { }
+      return;
+    }
+
+    // 2. 全量状态快照合并
     const currentKey = getChannelStorageKey(state.channel);
     if (event.key !== currentKey || !event.newValue) return;
     try {
@@ -622,14 +635,24 @@
     }
   }
 
-  // 统一分发包至本地 BroadcastChannel 与远程 WebRTC P2P 通道
+  // 统一分发包至本地 BroadcastChannel、跨窗 LocalStorage 与远程 WebRTC P2P 通道
   function sendUnifiedPacket(packet) {
     if (!packet) return;
 
-    // 1. 本地多窗口/悬浮窗广播 (<0.1ms)
-    broadcast?.postMessage(packet);
+    // 1. 本地 BroadcastChannel 内存广播 (<0.1ms)
+    try {
+      broadcast?.postMessage(packet);
+    } catch (e) {}
 
-    // 2. 远程 P2P WebRTC 通道广播 (<35ms)
+    // 2. 本地跨窗口 / 跨进程 LocalStorage 信号总线 (弥补 BroadcastChannel 偶发丢包)
+    try {
+      localStorage.setItem('sanctuary_signal_packet', JSON.stringify({
+        ...packet,
+        _rnd: Math.random() + '_' + Date.now()
+      }));
+    } catch (e) {}
+
+    // 3. 远程 P2P WebRTC 通道广播 (<35ms)
     if (activeConnections.size > 0) {
       activeConnections.forEach(conn => {
         if (conn && conn.open) {

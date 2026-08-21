@@ -1977,33 +1977,66 @@ const GamesArena = (() => {
       xiangqi: '🪓👑 中国象棋',
       ludo: '✈️🎲 飞行棋'
     };
-    const title = gameNames[game] || '对战对局';
+    const title = gameNames[game] || '联机对决';
     const targetRole = inviterRole === 1 ? 2 : 1;
     const roleDescs = {
-      temple: targetRole === 1 ? '1P 帕帕(水灵)' : '2P 小南瓜(炽火)',
-      contra: targetRole === 1 ? '1P 帕帕(装甲)' : '2P 小南瓜(爆破)',
+      temple: targetRole === 1 ? '1P 帕帕 (水灵契约)' : '2P 小南瓜 (烈焰踏板)',
+      contra: targetRole === 1 ? '1P 帕帕 (突击先锋)' : '2P 小南瓜 (重炮专家)',
       thunder: targetRole === 1 ? '1P 极光神龟' : '2P 炽焰战梭',
-      gomoku: targetRole === 1 ? '执黑(先手)' : '执白(后手)',
-      animals: targetRole === 1 ? '蓝方(先手)' : '红方(后手)',
-      xiangqi: targetRole === 1 ? '红方(先手)' : '黑方(后手)',
-      ludo: targetRole === 1 ? '红队(先手)' : '黄队(后手)'
+      gomoku: targetRole === 1 ? '执黑棋 (先手)' : '执白棋 (后手)',
+      animals: targetRole === 1 ? '蓝方 (先手)' : '红方 (后手)',
+      xiangqi: targetRole === 1 ? '红方 (先手)' : '黑方 (后手)',
+      ludo: targetRole === 1 ? '红队 (先手)' : '黄队 (后手)'
     };
 
+    // 播放邀请提示音与全局 Toast
+    if (typeof playSound === 'function') playSound('letter');
     if (typeof toast === 'function') {
-      toast(
-        `🎮 收到对弈邀请`,
-        `【${inviterName || '共养伙伴'}】邀请你加入【${title}】(${roleDescs[game] || ''})！`,
-        6000
-      );
+      toast(`🎮 收到联机挑战`, `【${inviterName || '伙伴'}】邀请你加入【${title}】！`, 6000);
     }
 
-    const playPrompt = confirm(`【${inviterName || '伙伴'}】向你发起了【${title}】联机挑战！\n是否立即加入对弈？`);
-    if (playPrompt) {
+    // 移除已存在的邀请框
+    const oldModal = document.getElementById('remoteGameInviteModal');
+    if (oldModal) oldModal.remove();
+
+    // 弹出沉浸式联机邀请卡片
+    const modal = document.createElement('div');
+    modal.id = 'remoteGameInviteModal';
+    modal.style.cssText = `
+      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(10px);
+      z-index: 100000; display: flex; align-items: center; justify-content: center; animation: fadeInMsg 0.25s ease;
+    `;
+    modal.innerHTML = `
+      <div style="background: linear-gradient(145deg, #1e293b, #0f172a); border: 2px solid rgba(245, 158, 11, 0.5); border-radius: 20px; padding: 24px 28px; width: 360px; box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(245, 158, 11, 0.25); text-align: center; color: #fff;">
+        <div style="font-size: 38px; margin-bottom: 8px;">⚔️</div>
+        <h3 style="margin: 0 0 6px; font-size: 18px; font-weight: 800; color: #fde047;">远方伙伴发来联机挑战！</h3>
+        <p style="margin: 0 0 16px; font-size: 13px; color: #94a3b8;">
+          <b style="color: #38bdf8;">${data.senderAvatar || '💌'} ${inviterName || '共养伙伴'}</b> 邀请你对战：
+        </p>
+        <div style="background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 12px; margin-bottom: 20px;">
+          <div style="font-size: 15px; font-weight: bold; color: #f8fafc; margin-bottom: 4px;">${title}</div>
+          <div style="font-size: 12px; color: #34d399;">你的分配身份：<b>${roleDescs[game] || '玩家'}</b></div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button id="acceptGameInviteBtn" style="flex: 1; padding: 11px 0; border-radius: 10px; background: linear-gradient(135deg, #10b981, #059669); color: #fff; font-weight: bold; font-size: 14px; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4); transition: all 0.2s;">⚔️ 立即应战</button>
+          <button id="declineGameInviteBtn" style="flex: 1; padding: 11px 0; border-radius: 10px; background: rgba(255, 255, 255, 0.1); color: #94a3b8; font-weight: bold; font-size: 14px; border: 1px solid rgba(255, 255, 255, 0.15); cursor: pointer;">✕ 稍后再玩</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    document.getElementById('acceptGameInviteBtn').onclick = () => {
+      modal.remove();
       if (typeof switchWorldMode === 'function') {
         switchWorldMode('games');
       }
       startSelectedGame(game, 'pvp', 'hard', targetRole, inviterName, data.senderAvatar);
-    }
+    };
+
+    document.getElementById('declineGameInviteBtn').onclick = () => {
+      modal.remove();
+    };
   }
 
   function initUI() {
