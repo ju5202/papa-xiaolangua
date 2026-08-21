@@ -435,7 +435,10 @@
         <!-- 视图 1：棋阁与街机大厅 (Lobby View) -->
         <div class="games-view-lobby" id="gamesLobbyView">
           <div class="games-lobby-header">
-            <div class="games-lobby-tag">🎮 GAMES & ARCADE · 游艺街机阁</div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div class="games-lobby-tag">🎮 GAMES & ARCADE · 游艺街机阁</div>
+              <button class="stealth-toggle-btn" id="stealthLobbyToggleBtn" title="开启/配置摸鱼伪装模式 (Alt + ~)"><span>🐟 摸鱼模式</span></button>
+            </div>
             <h2>经典街机 · 智弈对决</h2>
             <p>畅玩《水火共生》、《合金双雄》、《星际雷霆》等经典街机闯关，亦可体验五子棋、象棋等智弈对局！</p>
           </div>
@@ -801,6 +804,7 @@
   <script src="js/games_contra.js"></script>
   <script src="js/games_thunder.js"></script>
   <script src="js/games_soup.js"></script>
+  <script src="js/games_stealth.js"></script>
   <script src="js/games.js"></script>
   <script src="js/main.js"></script>
 </body>

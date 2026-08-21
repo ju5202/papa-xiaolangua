@@ -1,0 +1,376 @@
+/* ==========================================================================
+   帕帕 · 小南瓜 | 游艺街机阁 — 沉浸式摸鱼伪装系统 (Stealth Camouflage Styles)
+   包含：VS Code代码编辑器伪装、Excel表格伪装、极简灰度滤镜、透明度调节与老板键假遮罩
+   ========================================================================== */
+
+/* 摸鱼模式全局透明度与平滑过渡 */
+#gamesStage.stealth-active {
+  opacity: var(--stealth-opacity, 0.85);
+  transition: opacity 0.25s ease, filter 0.25s ease;
+}
+
+#gamesStage.stealth-active.stealth-autofade:not(:hover) {
+  opacity: calc(var(--stealth-opacity, 0.85) * 0.45);
+}
+
+/* -------------------------------------------------------------------------
+   1. 极客代码伪装皮肤 (VS Code / Monokai IDE Theme)
+   ------------------------------------------------------------------------- */
+#gamesStage.stealth-code {
+  background: #1e1e1e !important;
+  font-family: 'DM Mono', Consolas, 'Courier New', monospace !important;
+}
+
+#gamesStage.stealth-code .games-backdrop {
+  display: none !important;
+}
+
+#gamesStage.stealth-code .game-play-topbar {
+  background: #252526 !important;
+  border-bottom: 1px solid #333333 !important;
+}
+
+#gamesStage.stealth-code .game-board-outer,
+#gamesStage.stealth-code .arcade-arena-wrapper,
+#gamesStage.stealth-code .soup-arena-wrapper {
+  background: #181818 !important;
+  border: 1px solid #333333 !important;
+  box-shadow: none !important;
+}
+
+/* 伪装代码标签页 Header Bar */
+.stealth-ide-tabs-bar {
+  display: none;
+  background: #2d2d2d;
+  border-bottom: 1px solid #1e1e1e;
+  padding: 0 10px;
+  gap: 2px;
+}
+
+#gamesStage.stealth-code .stealth-ide-tabs-bar {
+  display: flex;
+}
+
+.stealth-ide-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: #1e1e1e;
+  color: #cccccc;
+  font-size: 11.5px;
+  font-family: 'DM Mono', monospace;
+  border-top: 2px solid #007acc;
+  border-right: 1px solid #252526;
+  user-select: none;
+}
+
+.stealth-ide-tab.secondary {
+  background: #2d2d2d;
+  color: #888888;
+  border-top: 2px solid transparent;
+}
+
+/* 伪装行号列 */
+.stealth-line-numbers {
+  display: none;
+  width: 32px;
+  padding: 10px 0;
+  text-align: right;
+  padding-right: 8px;
+  color: #5a5a5a;
+  font-size: 11px;
+  font-family: 'DM Mono', monospace;
+  user-select: none;
+  border-right: 1px solid #2d2d2d;
+  flex-shrink: 0;
+  line-height: 20px;
+}
+
+#gamesStage.stealth-code .stealth-line-numbers {
+  display: block;
+}
+
+#gamesStage.stealth-code .game-play-area {
+  display: flex;
+}
+
+/* 代码主题下的棋子与元素极简调色 */
+#gamesStage.stealth-code canvas {
+  filter: saturate(0.65) brightness(0.85) contrast(1.1);
+}
+
+#gamesStage.stealth-code .board-cell {
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+#gamesStage.stealth-code .gomoku-board {
+  background: #222222 !important;
+  border-color: #383838 !important;
+}
+
+/* -------------------------------------------------------------------------
+   2. 办公表格伪装皮肤 (Excel / Spreadsheet Theme)
+   ------------------------------------------------------------------------- */
+#gamesStage.stealth-excel {
+  background: #f8fafc !important;
+  color: #1e293b !important;
+}
+
+#gamesStage.stealth-excel .games-backdrop {
+  display: none !important;
+}
+
+#gamesStage.stealth-excel .game-play-topbar {
+  background: #f1f5f9 !important;
+  border-bottom: 1px solid #cbd5e1 !important;
+  color: #334155 !important;
+}
+
+#gamesStage.stealth-excel .game-play-topbar h3,
+#gamesStage.stealth-excel .game-play-topbar span {
+  color: #334155 !important;
+}
+
+/* 伪装 Excel 公式栏 */
+.stealth-excel-formula-bar {
+  display: none;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 5px 14px;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #475569;
+}
+
+#gamesStage.stealth-excel .stealth-excel-formula-bar {
+  display: flex;
+}
+
+.excel-fx-icon {
+  font-style: italic;
+  font-weight: bold;
+  color: #059669;
+}
+
+.excel-formula-input {
+  flex: 1;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 11.5px;
+  font-family: 'DM Mono', monospace;
+  color: #0f172a;
+}
+
+#gamesStage.stealth-excel .game-board-outer,
+#gamesStage.stealth-excel .arcade-arena-wrapper,
+#gamesStage.stealth-excel .soup-arena-wrapper {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: none !important;
+}
+
+#gamesStage.stealth-excel .gomoku-board {
+  background: #f8fafc !important;
+  border-color: #94a3b8 !important;
+}
+
+#gamesStage.stealth-excel canvas {
+  filter: contrast(1.15) brightness(1.05);
+}
+
+/* -------------------------------------------------------------------------
+   3. 极简灰度线框皮肤 (Minimalist Wireframe Monotone)
+   ------------------------------------------------------------------------- */
+#gamesStage.stealth-mono {
+  background: #11141a !important;
+}
+
+#gamesStage.stealth-mono .games-backdrop {
+  display: none !important;
+}
+
+#gamesStage.stealth-mono .game-board-outer,
+#gamesStage.stealth-mono .arcade-arena-wrapper,
+#gamesStage.stealth-mono .soup-arena-wrapper,
+#gamesStage.stealth-mono .game-select-card {
+  filter: grayscale(0.9) contrast(0.9) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  box-shadow: none !important;
+}
+
+#gamesStage.stealth-mono canvas {
+  filter: grayscale(1) contrast(0.9) brightness(0.85);
+}
+
+/* -------------------------------------------------------------------------
+   4. 摸鱼控制面板 (Stealth Control Flyout)
+   ------------------------------------------------------------------------- */
+.stealth-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #e2e8f0;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.stealth-toggle-btn:hover {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: #f59e0b;
+  color: #fde047;
+}
+
+.stealth-toggle-btn.active {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(5, 150, 105, 0.3));
+  border-color: #10b981;
+  color: #6ee7b7;
+}
+
+/* 摸鱼悬浮抽屉菜单 */
+.stealth-drawer-popover {
+  position: absolute;
+  top: 48px;
+  right: 18px;
+  width: 290px;
+  background: #182032;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(12px);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: fadeInMsg 0.2s ease;
+}
+
+.stealth-drawer-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 800;
+  color: #f8fafc;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 8px;
+}
+
+.stealth-skin-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.stealth-skin-opt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.stealth-skin-opt:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.stealth-skin-opt.active {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: #38bdf8;
+  color: #38bdf8;
+  font-weight: 700;
+}
+
+/* 滑动条 */
+.stealth-slider-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11.5px;
+  color: #94a3b8;
+}
+
+.stealth-slider-row input[type="range"] {
+  flex: 1;
+  accent-color: #38bdf8;
+}
+
+/* 开关项 */
+.stealth-checkbox-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: #cbd5e1;
+  cursor: pointer;
+}
+
+.stealth-checkbox-row input {
+  accent-color: #10b981;
+}
+
+/* -------------------------------------------------------------------------
+   5. 紧急老板键伪装遮罩 (Panic / Boss Emergency Mask)
+   ------------------------------------------------------------------------- */
+.stealth-panic-mask {
+  position: absolute;
+  inset: 0;
+  background: #0d1117;
+  color: #58a6ff;
+  font-family: 'DM Mono', Consolas, monospace;
+  padding: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+  user-select: none;
+}
+
+.panic-mask-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #30363d;
+  padding-bottom: 8px;
+  color: #8b949e;
+  font-size: 12px;
+}
+
+.panic-mask-terminal {
+  flex: 1;
+  overflow-y: auto;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: #c9d1d9;
+}
+
+.panic-mask-terminal .log-green { color: #3fb950; }
+.panic-mask-terminal .log-yellow { color: #d29922; }
+.panic-mask-terminal .log-cyan { color: #58a6ff; }
+.panic-mask-terminal .log-dim { color: #484f58; }
+
+.panic-mask-hint {
+  font-size: 11px;
+  color: #484f58;
+  text-align: right;
+}

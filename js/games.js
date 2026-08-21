@@ -2007,6 +2007,10 @@ const GamesArena = (() => {
   }
 
   function initUI() {
+    if (typeof StealthMode !== 'undefined') {
+      StealthMode.init();
+    }
+
     // 分类 Tab 切换
     const catArcadeBtn = document.getElementById('gameCatArcadeBtn');
     const catSoupBtn = document.getElementById('gameCatSoupBtn');
